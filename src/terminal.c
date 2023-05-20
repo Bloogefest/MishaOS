@@ -25,6 +25,18 @@ void terminal_set_column(size_t column) {
     terminal_column = column;
 }
 
+uint8_t terminal_get_color() {
+    return terminal_color;
+}
+
+size_t terminal_get_row() {
+    return terminal_row;
+}
+
+size_t terminal_get_column() {
+    return terminal_column;
+}
+
 void terminal_putentryat(unsigned char c, uint8_t color, size_t x, size_t y) {
     terminal_buffer[y * VGA_WIDTH + x] = terminal_vga_entry(c, color);
 }
@@ -41,7 +53,10 @@ void terminal_putchar(char c) {
     switch (c) {
         case '\n': {
             terminal_column = 0;
-            terminal_row++;
+            if (++terminal_row == VGA_HEIGHT) {
+                terminal_row = 0;
+            }
+
             break;
         }
 
@@ -53,6 +68,8 @@ void terminal_putchar(char c) {
                     terminal_row = 0;
                 }
             }
+
+            break;
         }
     }
 }

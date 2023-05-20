@@ -1,10 +1,7 @@
 #pragma once
 
-size_t strlen(const char* str) {
-    size_t len = 0;
-    while (str[len]) {
-        len++;
-    }
+#include <stdint.h>
+#include <stddef.h>
 
-    return len;
-}
+size_t strlen(const char* str);
+void* memset(void* data, int value, size_t size);

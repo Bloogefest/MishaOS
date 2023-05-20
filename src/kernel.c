@@ -3,6 +3,7 @@
 #include "tss.h"
 #include "idt.h"
 #include "isrs.h"
+#include "pic.h"
 
 void kernel_main() {
     terminal_init();
@@ -20,12 +21,19 @@ void kernel_main() {
     gdt_load(sizeof(gdt) - 1, (uint32_t) &gdt);
 
     idt_entry_t idt[256];
-    idt_encode_entry(&idt[49], (uint32_t) interrupt_handler, 0x08, 0, 0xE);
+    idt_encode_entry(&idt[0x08], (uint32_t) double_fault_isr, 0x08, 0, 0xE);
+    idt_encode_entry(&idt[0x0D], (uint32_t) general_protection_fault_isr, 0x08, 0, 0xE);
+    idt_encode_entry(&idt[0x21], (uint32_t) master_mask_port_isr, 0x08, 0, 0xE);
     idt_load(sizeof(idt) - 1, (uint32_t) &idt);
 
-    asm("int $49");
+    pic_remap(0x20, 0x28);
 
-    terminal_putstring("Done. MishaOS loaded.");
+    pic_irq_set_master_mask(0b11111101);
+    pic_irq_set_slave_mask(0b11111111);
+
+    asm("sti");
+
+    terminal_putstring("Done. MishaOS loaded.\n");
 
     for (;;) {
         asm("hlt");
