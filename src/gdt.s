@@ -1,4 +1,5 @@
 .intel_syntax noprefix
+.section .text
 
 gdtr: .short 0
       .int 0
@@ -10,4 +11,12 @@ gdt_load:
     mov eax, [esp + 8]
     mov [gdtr + 2], eax
     lgdt [gdtr]
-    ret
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+	jmp 0x08:complete_flush
+complete_flush:
+	ret

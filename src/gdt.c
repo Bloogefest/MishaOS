@@ -1,10 +1,6 @@
 #include "gdt.h"
 
-void gdt_encode(gdt_entry_t* entry, uint32_t base, uint32_t limit, uint8_t access_byte, uint8_t flags) {
-    if (limit > 0xFFFFF) {
-        return;
-    }
-
+void gdt_encode_entry(gdt_entry_t* entry, uint32_t base, uint32_t limit, uint8_t access_byte, uint8_t flags) {
     uint8_t* target = (uint8_t*) entry;
     target[0] = limit & 0xFF;
     target[1] = (limit >> 8) & 0xFF;

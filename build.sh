@@ -1,12 +1,16 @@
 #!/bin/bash
 # TODO: Makefile
+set -e
 mkdir -p build
 i686-elf-as src/boot.s -o build/boot.o
 i686-elf-gcc -c src/kernel.c -o build/kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 i686-elf-gcc -c src/terminal.c -o build/terminal.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 i686-elf-as src/gdt.s -o build/gdt_s.o
 i686-elf-gcc -c src/gdt.c -o build/gdt.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
-i686-elf-gcc -T linker.ld -o build/mishaos.bin -ffreestanding -O2 -nostdlib build/boot.o build/kernel.o build/terminal.o build/gdt_s.o build/gdt.o -lgcc
+i686-elf-as src/idt.s -o build/idt_s.o
+i686-elf-gcc -c src/idt.c -o build/idt.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra
+i686-elf-gcc -c src/isrs.c -o build/isrs.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra -mgeneral-regs-only -Wno-unused-parameter
+i686-elf-gcc -T linker.ld -o build/mishaos.bin -ffreestanding -O2 -nostdlib build/idt_s.o build/idt.o build/boot.o build/kernel.o build/terminal.o build/gdt_s.o build/gdt.o build/isrs.o -lgcc
 mkdir -p build/iso/boot/grub
 cp grub.cfg build/iso/boot/grub
 cp -f build/mishaos.bin build/iso/boot
