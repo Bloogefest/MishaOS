@@ -69,5 +69,9 @@ void lfb_terminal_putchar(char ch) {
 }
 
 void lfb_terminal_clear_terminal() {
-    // TODO
+    for (size_t y = 0; y < lfb_height; y++) {
+        for (size_t x = 0; x < lfb_width; x++) {
+            *((uint32_t*) linear_framebuffer + x + y * lfb_width) = 0;
+        }
+    }
 }
