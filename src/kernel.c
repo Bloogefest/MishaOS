@@ -1,4 +1,8 @@
 #include "terminal.h"
+#include "vga_terminal.h"
+#include "lfb_terminal.h"
+#include "lfb.h"
+#include "tga.h"
 #include "gdt.h"
 #include "tss.h"
 #include "idt.h"
@@ -14,6 +18,7 @@
 #include "../mishavfs/vfs.h"
 
 void kernel_main(struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t esp) {
+    terminal = vga_terminal;
     terminal_init();
     terminal_putstring("Optimizing fish...\n");
 
@@ -31,7 +36,7 @@ void kernel_main(struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t e
         terminal_putstring(num);
         terminal_putstring(" bytes\n");
 
-        terminal_putstring("Loading initrd... ");
+        terminal_putstring("Loading initrd... \n");
 
         vfs_filesystem_t initrd;
         vfs_read_filesystem(&initrd, (uint8_t*) module_start);
@@ -40,7 +45,23 @@ void kernel_main(struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t e
             panic("Failed to verify initrd");
         }
 
-        terminal_putstring("done.\n");
+        vbe_info_t* vbe_info = ((vbe_info_t*) (multiboot->vbe_mode_info));
+
+        vfs_entry_t* logo = vfs_find_entry(&initrd, "logo.tga");
+        uint8_t* lfb = (uint8_t*) vbe_info->physbase;
+        tga_parse((uint32_t*) lfb - 2 /* i'm not sure if this is safe */, vfs_file_content(&initrd, logo, 0), logo->size);
+
+        vfs_entry_t* font = vfs_find_entry(&initrd, "zap-vga16.psf");
+        psf_font_t* psf_font = psf_load_font(vfs_file_content(&initrd, font, 0));
+
+        linear_framebuffer = lfb;
+        lfb_width = vbe_info->x_res;
+        lfb_height = vbe_info->y_res;
+        terminal = lfb_terminal;
+        lfb_terminal_set_font(psf_font);
+        lfb_copy_from_vga();
+
+        terminal_putstring("Initialized linear framebuffer.\n");
     } else {
         panic("Invalid multiboot header.");
     }

@@ -1,0 +1,20 @@
+name: Build
+
+on: [ push ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install mtools
+        run: sudo apt install mtools
+      - name: Install i686-elf-tools
+        run: wget https://github.com/lordmilko/i686-elf-tools/releases/download/7.1.0/i686-elf-tools-linux.zip -O ~/elf-tools.zip && mkdir -p ~/elf-tools && unzip ~/elf-tools.zip -d ~/elf-tools
+      - name: Build MishaOS
+        run: export PATH=$PATH:~/elf-tools/bin && ./build.sh
+      - name: Upload MishaOS iso
+        uses: actions/upload-artifact@v2
+        with:
+          name: MishaOS
+          path: mishaos.iso

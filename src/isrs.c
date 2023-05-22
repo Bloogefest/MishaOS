@@ -69,15 +69,16 @@ void master_mask_port_isr(struct interrupt_frame* frame) {
             size_t column = terminal_get_column();
             size_t row = terminal_get_row();
             if (--column == (size_t) -1) {
-                column = VGA_WIDTH - 1;
+                column = terminal_get_columns() - 1;
                 if (--row == (size_t) -1) {
-                    row = VGA_HEIGHT - 1;
+                    row = terminal_get_rows() - 1;
                 }
             }
 
-            terminal_putentryat(' ', terminal_get_color(), column, row);
             terminal_set_column(column);
             terminal_set_row(row);
+            terminal_putchar(' ');
+            terminal_set_column(column);
             break;
         }
 
