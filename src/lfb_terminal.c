@@ -2,7 +2,7 @@
 #include "lfb.h"
 #include "vga_terminal.h"
 
-terminal_t lfb_terminal = {.init = lfb_terminal_init, .putchar = lfb_terminal_putchar, .clear = lfb_terminal_clear_terminal, .rows = 768 / 16, .columns = 1024 / 8};
+terminal_t lfb_terminal = {.init = lfb_terminal_init, .putchar = lfb_terminal_putchar, .clear = lfb_terminal_clear_terminal};
 
 static psf_font_t* font;
 
@@ -36,6 +36,8 @@ void lfb_terminal_set_font(psf_font_t* f) {
 }
 
 void lfb_terminal_init() {
+    lfb_terminal.columns = lfb_width / 8;
+    lfb_terminal.rows = lfb_height / 16;
     terminal_set_row(0);
     terminal_set_column(0);
 }
