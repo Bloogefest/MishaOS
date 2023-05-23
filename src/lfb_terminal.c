@@ -53,8 +53,8 @@ void lfb_terminal_putchar(char ch) {
 
     char* face = (char*) font->buffer + (ch * font->header.character_size);
 
-    for (uint64_t j = 0; j < 16; j++) {
-        for (uint64_t i = 0; i < 8; i++) {
+    for (size_t j = 0; j < 16; j++) {
+        for (size_t i = 0; i < 8; i++) {
             uint32_t nx = (terminal_column * 8) + i;
             uint32_t ny = (terminal_row * 16) + j;
 
@@ -73,7 +73,7 @@ void lfb_terminal_putchar(char ch) {
 void lfb_terminal_clear_terminal() {
     for (size_t y = 0; y < lfb_height; y++) {
         for (size_t x = 0; x < lfb_width; x++) {
-            *((uint32_t*) linear_framebuffer + x + y * lfb_width) = 0;
+            lfb_set_pixel(x, y, 0);
         }
     }
 }

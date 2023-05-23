@@ -15,12 +15,16 @@
 #include "ide.h"
 #include "stdlib.h"
 #include "string.h"
+#include "mouse.h"
+
 #include "../mishavfs/vfs.h"
 
 void kernel_main(struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t esp) {
     terminal = vga_terminal;
     terminal_init();
     terminal_putstring("Optimizing fish...\n");
+
+    uint32_t cursor_buffer[CURSOR_WIDTH * CURSOR_HEIGHT + 2];
 
     if (multiboot_msg == MULTIBOOT_EAX_MAGIC) {
         terminal_putstring("Multiboot structure is valid.\n");
@@ -46,9 +50,9 @@ void kernel_main(struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t e
         }
 
         vbe_info_t* vbe_info = ((vbe_info_t*) (multiboot->vbe_mode_info));
+        uint8_t* lfb = (uint8_t*) vbe_info->physbase;
 
         vfs_entry_t* logo = vfs_find_entry(&initrd, "logo.tga");
-        uint8_t* lfb = (uint8_t*) vbe_info->physbase;
         tga_parse((uint32_t*) lfb - 2 /* i'm not sure if this is safe */, vfs_file_content(&initrd, logo, 0), logo->size);
 
         vfs_entry_t* font = vfs_find_entry(&initrd, "zap-vga16.psf");
@@ -60,6 +64,15 @@ void kernel_main(struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t e
         terminal = lfb_terminal;
         lfb_terminal_set_font(psf_font);
         lfb_copy_from_vga();
+
+        vfs_entry_t* cursors = vfs_find_entry(&initrd, "cursors");
+        vfs_entry_t* cursor = vfs_find_entry_in(&initrd, cursors, "center_ptr.tga");
+        tga_parse(cursor_buffer, vfs_file_content(&initrd, cursor, 0), cursor->size);
+        if (cursor_buffer[0] != CURSOR_WIDTH || cursor_buffer[1] != CURSOR_HEIGHT) {
+            panic("Invalid cursor size.");
+        }
+
+        mouse_set_cursor(cursor_buffer + 2);
 
         terminal_putstring("Initialized linear framebuffer.\n");
     } else {
@@ -105,17 +118,23 @@ void kernel_main(struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t e
     idt_entry_t idt[256];
     idt_encode_entry(&idt[0x08], (uint32_t) double_fault_isr, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x0D], (uint32_t) general_protection_fault_isr, 0x08, 0, 0xE);
-    idt_encode_entry(&idt[0x21], (uint32_t) master_mask_port_isr, 0x08, 0, 0xE);
+    idt_encode_entry(&idt[0x21], (uint32_t) keyboard_isr, 0x08, 0, 0xE);
+    idt_encode_entry(&idt[0x2C], (uint32_t) ps2_mouse_isr, 0x08, 0, 0xE);
     idt_load(sizeof(idt) - 1, (uint32_t) &idt);
 
     terminal_putstring("Remapping PIC...\n");
     pic_remap(0x20, 0x28);
 
-    pic_irq_set_master_mask(0b11111101);
-    pic_irq_set_slave_mask(0b11111111);
+    terminal_putstring("Initializing mouse...\n");
+    mouse_init();
+
+    terminal_putstring("Enabling IRQs...\n");
+    pic_irq_set_master_mask(0b11111001);
+    pic_irq_set_slave_mask(0b11101111);
 
     asm("sti");
 
+    terminal_putstring("Initializing PCI...\n");
     for (uint32_t bus = 0; bus < 256; ++bus) {
         for (uint32_t dev = 0; dev < 32; ++dev) {
             uint32_t base_id = pci_get_id(bus, dev, 0);
@@ -133,6 +152,6 @@ void kernel_main(struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t e
     terminal_putstring("Done. MishaOS loaded.\n");
 
     for (;;) {
-        asm("hlt");
+        mouse_handle_packet();
     }
 }

@@ -9,4 +9,7 @@ __attribute__((interrupt))
 void double_fault_isr(struct interrupt_frame* frame);
 
 __attribute__((interrupt))
-void master_mask_port_isr(struct interrupt_frame* frame);
+void keyboard_isr(struct interrupt_frame* frame);
+
+__attribute__((interrupt))
+void ps2_mouse_isr(struct interrupt_frame* frame);

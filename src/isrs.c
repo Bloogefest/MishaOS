@@ -3,6 +3,7 @@
 #include "panic.h"
 #include "io.h"
 #include "pic.h"
+#include "mouse.h"
 
 __attribute__((interrupt))
 void general_protection_fault_isr(struct interrupt_frame* frame) {
@@ -42,7 +43,7 @@ static uint8_t CAPS_LOCK;
 static uint8_t SHIFT;
 
 __attribute__((interrupt))
-void master_mask_port_isr(struct interrupt_frame* frame) {
+void keyboard_isr(struct interrupt_frame* frame) {
     uint8_t scancode = inb(0x60);
     switch (scancode) {
         case 0x1C: { // Enter pressed
@@ -98,4 +99,10 @@ void master_mask_port_isr(struct interrupt_frame* frame) {
     }
 
     pic_master_eoi();
+}
+
+__attribute__((interrupt))
+void ps2_mouse_isr(struct interrupt_frame* frame) {
+    mouse_read_packet();
+    pic_slave_eoi();
 }
