@@ -13,3 +13,6 @@ void keyboard_isr(struct interrupt_frame* frame);
 
 __attribute__((interrupt))
 void ps2_mouse_isr(struct interrupt_frame* frame);
+
+__attribute__((interrupt))
+void pit_isr(struct interrupt_frame* frame);

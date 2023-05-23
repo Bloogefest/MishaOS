@@ -16,6 +16,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "mouse.h"
+#include "pit.h"
 
 #include "../mishavfs/vfs.h"
 
@@ -118,6 +119,7 @@ void kernel_main(struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t e
     idt_entry_t idt[256];
     idt_encode_entry(&idt[0x08], (uint32_t) double_fault_isr, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x0D], (uint32_t) general_protection_fault_isr, 0x08, 0, 0xE);
+    idt_encode_entry(&idt[0x20], (uint32_t) pit_isr, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x21], (uint32_t) keyboard_isr, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x2C], (uint32_t) ps2_mouse_isr, 0x08, 0, 0xE);
     idt_load(sizeof(idt) - 1, (uint32_t) &idt);
@@ -128,8 +130,11 @@ void kernel_main(struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t e
     terminal_putstring("Initializing mouse...\n");
     mouse_init();
 
+    terminal_putstring("Initializing PIT...\n");
+    pit_set_phase(100);
+
     terminal_putstring("Enabling IRQs...\n");
-    pic_irq_set_master_mask(0b11111001);
+    pic_irq_set_master_mask(0b11111000);
     pic_irq_set_slave_mask(0b11101111);
 
     asm("sti");

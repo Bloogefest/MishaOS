@@ -4,6 +4,7 @@
 #include "io.h"
 #include "pic.h"
 #include "mouse.h"
+#include "pit.h"
 
 __attribute__((interrupt))
 void general_protection_fault_isr(struct interrupt_frame* frame) {
@@ -105,4 +106,10 @@ __attribute__((interrupt))
 void ps2_mouse_isr(struct interrupt_frame* frame) {
     mouse_read_packet();
     pic_slave_eoi();
+}
+
+__attribute__((interrupt))
+void pit_isr(struct interrupt_frame* frame) {
+    pit_tick();
+    pic_master_eoi();
 }

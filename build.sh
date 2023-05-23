@@ -30,7 +30,9 @@ i686-elf-gcc -c src/psf_font.c -o build/psf_font.o $cc_flags
 i686-elf-gcc -c src/lfb_terminal.c -o build/lfb_terminal.o $cc_flags
 i686-elf-gcc -c src/tga.c -o build/tga.o $cc_flags
 i686-elf-gcc -c src/mouse.c -o build/mouse.o $cc_flags
-i686-elf-gcc -T linker.ld -o build/mishaos.bin -ffreestanding -O2 -nostdlib build/idt_s.o build/idt.o build/boot.o build/kernel.o build/terminal.o build/gdt_s.o build/gdt.o build/isrs.o build/panic.o build/string.o build/io.o build/pic.o build/acpi.o build/stdlib.o build/pci.o build/driver.o build/ide.o build/vfs.o build/vga_terminal.o build/lfb.o build/psf_font.o build/lfb_terminal.o build/tga.o build/mouse.o -lgcc
+i686-elf-gcc -c src/pit.c -o build/pit.o $cc_flags
+i686-elf-gcc -c src/sleep.c -o build/sleep.o $cc_flags
+i686-elf-gcc -T linker.ld -o build/mishaos.bin -ffreestanding -O2 -nostdlib build/idt_s.o build/idt.o build/boot.o build/kernel.o build/terminal.o build/gdt_s.o build/gdt.o build/isrs.o build/panic.o build/string.o build/io.o build/pic.o build/acpi.o build/stdlib.o build/pci.o build/driver.o build/ide.o build/vfs.o build/vga_terminal.o build/lfb.o build/psf_font.o build/lfb_terminal.o build/tga.o build/mouse.o build/sleep.o build/pit.o -lgcc
 
 # Build mishavfs
 pushd mishavfs
