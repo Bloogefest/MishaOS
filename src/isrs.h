@@ -9,6 +9,9 @@ __attribute__((interrupt))
 void double_fault_isr(struct interrupt_frame* frame);
 
 __attribute__((interrupt))
+void page_fault_isr(struct interrupt_frame* frame);
+
+__attribute__((interrupt))
 void keyboard_isr(struct interrupt_frame* frame);
 
 __attribute__((interrupt))

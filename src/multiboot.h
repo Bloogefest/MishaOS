@@ -16,6 +16,9 @@
 #define MULTIBOOT_FLAG_APM 0x200
 #define MULTIBOOT_FLAG_VBE 0x400
 
+#define MULTIBOOT_MEMORY_AVAILABLE 1
+#define MULTIBOOT_MEMORY_RESERVED 2
+
 struct multiboot {
     uintptr_t flags;
     uintptr_t mem_lower;
@@ -49,8 +52,9 @@ typedef struct vbe_info_s {
     uint8_t win_b;
     uint16_t granularity;
     uint16_t winsize;
-    uint16_t segmentA, segmentB;
-    uint32_t realFctPtr;
+    uint16_t segment_a;
+    uint16_t segment_b;
+    uint32_t real_fct_ptr;
     uint16_t pitch;
     uint16_t x_res;
     uint16_t y_res;
@@ -76,3 +80,10 @@ typedef struct vbe_info_s {
     uint32_t reserved1;
     uint16_t reserved2;
 } vbe_info_t;
+
+typedef struct multiboot_memory_map_entry_s {
+    uint32_t size;
+    uint64_t addr;
+    uint64_t len;
+    uint32_t type;
+} __attribute__((packed)) multiboot_memory_map_t;

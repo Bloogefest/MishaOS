@@ -35,6 +35,10 @@ _start:
     push %esp
     push %eax
     push %ebx
+    push $kernel_virtual_end
+    push $kernel_virtual_start
+    push $kernel_physical_end
+    push $kernel_physical_start
     call kernel_main
     cli
 1:  hlt

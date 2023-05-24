@@ -1,3 +1,5 @@
 #pragma once
 
-char* itoa(int n, char* buf, int radix);
+#include <stdint.h>
+
+char* itoa(int64_t target, char* buf, uint32_t radix);

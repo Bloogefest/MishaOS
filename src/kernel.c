@@ -1,3 +1,4 @@
+#include "kernel.h"
 #include "terminal.h"
 #include "vga_terminal.h"
 #include "lfb_terminal.h"
@@ -17,25 +18,38 @@
 #include "string.h"
 #include "mouse.h"
 #include "pit.h"
+#include "paging.h"
+#include "heap.h"
 
 #include "../mishavfs/vfs.h"
 
-void kernel_main(struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t esp) {
+page_directory_t page_directory;
+pfa_t pfa;
+
+void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t esp) {
     terminal = vga_terminal;
     terminal_init();
     terminal_putstring("Optimizing fish...\n");
+    char num[20];
 
     uint32_t cursor_buffer[CURSOR_WIDTH * CURSOR_HEIGHT + 2];
 
+    uint32_t module_start = 0;
+    uint32_t module_end = 0;
+    vfs_filesystem_t initrd;
+
     if (multiboot_msg == MULTIBOOT_EAX_MAGIC) {
         terminal_putstring("Multiboot structure is valid.\n");
+        if (!(multiboot->flags >> 6 & 0x1)) {
+            panic("Invalid memory map");
+        }
+
         if (multiboot->mods_count == 0) {
             panic("Initial ramdisk not found.");
         }
 
-        uint32_t module_start = *(uint32_t *) multiboot->mods_addr;
-        uint32_t module_end = *(uint32_t *) (multiboot->mods_addr + 4);
-        char num[11];
+        module_start = *(uint32_t*) multiboot->mods_addr;
+        module_end = *(uint32_t*) (multiboot->mods_addr + 4);
         itoa(module_end - module_start, num, 10);
         terminal_putstring("Found initrd: ");
         terminal_putstring(num);
@@ -43,7 +57,6 @@ void kernel_main(struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t e
 
         terminal_putstring("Loading initrd... \n");
 
-        vfs_filesystem_t initrd;
         vfs_read_filesystem(&initrd, (uint8_t*) module_start);
         vfs_entry_t* test_entry = vfs_find_entry(&initrd, ".initrd_test");
         if (!test_entry || _strcmp("optimizedfish", vfs_file_content(&initrd, test_entry, 0), test_entry->size)) {
@@ -51,34 +64,24 @@ void kernel_main(struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t e
         }
 
         vbe_info_t* vbe_info = ((vbe_info_t*) (multiboot->vbe_mode_info));
-        uint8_t* lfb = (uint8_t*) vbe_info->physbase;
-
-        vfs_entry_t* logo = vfs_find_entry(&initrd, "logo.tga");
-        tga_parse((uint32_t*) lfb - 2 /* i'm not sure if this is safe */, vfs_file_content(&initrd, logo, 0), logo->size);
-
-        vfs_entry_t* font = vfs_find_entry(&initrd, "zap-vga16.psf");
-        psf_font_t* psf_font = psf_load_font(vfs_file_content(&initrd, font, 0));
-
-        linear_framebuffer = lfb;
+        linear_framebuffer = (uint8_t*) vbe_info->physbase;
         lfb_width = vbe_info->x_res;
         lfb_height = vbe_info->y_res;
-        terminal = lfb_terminal;
-        lfb_terminal_set_font(psf_font);
-        lfb_copy_from_vga();
-
-        vfs_entry_t* cursors = vfs_find_entry(&initrd, "cursors");
-        vfs_entry_t* cursor = vfs_find_entry_in(&initrd, cursors, "center_ptr.tga");
-        tga_parse(cursor_buffer, vfs_file_content(&initrd, cursor, 0), cursor->size);
-        if (cursor_buffer[0] != CURSOR_WIDTH || cursor_buffer[1] != CURSOR_HEIGHT) {
-            panic("Invalid cursor size.");
-        }
-
-        mouse_set_cursor(cursor_buffer + 2);
 
         terminal_putstring("Initialized linear framebuffer.\n");
     } else {
         panic("Invalid multiboot header.");
     }
+
+    vfs_entry_t* logo = vfs_find_entry(&initrd, "logo.tga");
+    tga_parse((uint32_t*) linear_framebuffer - 2 /* i'm not sure if this is safe */, vfs_file_content(&initrd, logo, 0), logo->size);
+
+    vfs_entry_t* font = vfs_find_entry(&initrd, "zap-vga16.psf");
+    psf_font_t* psf_font = psf_load_font(vfs_file_content(&initrd, font, 0));
+
+    terminal = lfb_terminal;
+    lfb_terminal_set_font(psf_font);
+    lfb_copy_from_vga();
 
     rsdp_t* rsdp = rsdp_locate();
     if (!rsdp) {
@@ -119,15 +122,50 @@ void kernel_main(struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t e
     idt_entry_t idt[256];
     idt_encode_entry(&idt[0x08], (uint32_t) double_fault_isr, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x0D], (uint32_t) general_protection_fault_isr, 0x08, 0, 0xE);
+    idt_encode_entry(&idt[0x0E], (uint32_t) page_fault_isr, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x20], (uint32_t) pit_isr, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x21], (uint32_t) keyboard_isr, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x2C], (uint32_t) ps2_mouse_isr, 0x08, 0, 0xE);
     idt_load(sizeof(idt) - 1, (uint32_t) &idt);
 
+    terminal_putstring("Initializing paging...\n");
+    pfa_read_memory_map(&pfa, multiboot, &meminfo, module_start, module_end);
+    pde_init(&page_directory);
+
+    multiboot_memory_map_t* entry = (multiboot_memory_map_t*) multiboot->mmap_addr;
+    while ((uint32_t) entry < multiboot->mmap_addr + multiboot->mmap_length) {
+        for (uint32_t i = (uint32_t) entry->addr; i <= (uint32_t) entry->len; i += 0x1000) {
+            pde_map_memory(&page_directory, &pfa, (void*) i, (void*) i);
+        }
+
+        entry = (multiboot_memory_map_t*) (((uint32_t) entry) + entry->size + sizeof(entry->size));
+    }
+
+    for (uint32_t i = (uint32_t) linear_framebuffer; i < (uint32_t) linear_framebuffer + lfb_height * lfb_width * 4 + 0x1000; i += 0x1000) {
+        pde_map_memory(&page_directory, &pfa, (void*) i, (void*) i);
+    }
+
+    asm volatile("mov %0, %%cr3" : : "r"(page_directory.physical_address));
+    uint32_t cr0;
+    asm volatile("mov %%cr0, %0" : "=r"(cr0));
+    cr0 |= 0x80000000;
+    asm volatile("mov %0, %%cr0" : : "r"(cr0));
+
+    terminal_putstring("Initializing heap...\n");
+    heap_init((void*) 2147483648U, 0x10); // TODO: 64-bit kernel for larger address space
+
     terminal_putstring("Remapping PIC...\n");
     pic_remap(0x20, 0x28);
 
     terminal_putstring("Initializing mouse...\n");
+    vfs_entry_t* cursors = vfs_find_entry(&initrd, "cursors");
+    vfs_entry_t* cursor = vfs_find_entry_in(&initrd, cursors, "center_ptr.tga");
+    tga_parse(cursor_buffer, vfs_file_content(&initrd, cursor, 0), cursor->size);
+    if (cursor_buffer[0] != CURSOR_WIDTH || cursor_buffer[1] != CURSOR_HEIGHT) {
+        panic("Invalid cursor size.");
+    }
+
+    mouse_set_cursor(cursor_buffer + 2);
     mouse_init();
 
     terminal_putstring("Initializing PIT...\n");

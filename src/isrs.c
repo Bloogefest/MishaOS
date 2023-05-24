@@ -16,6 +16,11 @@ void double_fault_isr(struct interrupt_frame* frame) {
     panic("Double Fault");
 }
 
+__attribute__((interrupt))
+void page_fault_isr(struct interrupt_frame* frame) {
+    panic("Page Fault");
+}
+
 static const char SCAN_CODE_SET[] = {
         0x0, 0x0, '1', '2',
         '3', '4', '5', '6',
