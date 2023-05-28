@@ -1,9 +1,10 @@
 #pragma once
 
 #include <stdint.h>
+#include "pci.h"
 
 typedef struct driver_s {
-    void(*init)(uint32_t bus, uint32_t dev, uint32_t func);
+    void(*init)(pci_device_info_t* info, uint32_t bus, uint32_t dev, uint32_t func);
 } driver_t;
 
-extern const driver_t** PCI_DRIVER_TABLE[];
+extern const driver_t* PCI_DRIVERS[];

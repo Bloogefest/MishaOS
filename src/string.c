@@ -57,19 +57,9 @@ char* _strstr(const char* a, const char* b, size_t limit) {
     return 0;
 }
 
-int strcmp(const char* a, const char* b) {
-    for (size_t i = 0;; i++) {
-        if (a[i] < b[i]) {
-            return -1;
-        } else if (a[i] > b[i]) {
-            return 1;
-        } else if (a[i] == 0) {
-            return 0;
-        }
-    }
-}
-
-int _strcmp(const char* a, const char* b, size_t size) {
+int memcmp(void* ptr1, void* ptr2, size_t size) {
+    uint8_t* a = (uint8_t*) ptr1;
+    uint8_t* b = (uint8_t*) ptr2;
     for (size_t i = 0; i < size; i++) {
         if (a[i] < b[i]) {
             return -1;
@@ -81,9 +71,45 @@ int _strcmp(const char* a, const char* b, size_t size) {
     return 0;
 }
 
-void* memcpy(void* dst, void* src, size_t n) {
+char* _strchr(const char* str, int chr, uint32_t limit) {
+    for (uint32_t i = 0; i < limit; i++) {
+        if (str[i] == chr) {
+            return (char*) (str + i);
+        } else if (str[i] == 0) {
+            return 0;
+        }
+    }
+
+    return 0;
+}
+
+char* strchr(const char* str, int chr) {
+    for (;; str++) {
+        if (*str == chr) {
+            return (char*) str;
+        } else if (*str == 0) {
+            return 0;
+        }
+    }
+}
+
+int strcmp(const char* str1, const char* str2) {
+    const uint8_t* a = (const uint8_t*) str1;
+    const uint8_t* b = (const uint8_t*) str2;
+    for (size_t i = 0;; i++) {
+        if (a[i] < b[i]) {
+            return -1;
+        } else if (a[i] > b[i]) {
+            return 1;
+        } else if (a[i] == 0) {
+            return 0;
+        }
+    }
+}
+
+void* memcpy(void* dst, const void* src, size_t n) {
     for (size_t i = 0; i < n; i++) {
-        ((uint8_t*) dst)[i] = ((uint8_t*) src)[i];
+        ((uint8_t*) dst)[i] = ((const uint8_t*) src)[i];
     }
 
     return dst;

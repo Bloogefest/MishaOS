@@ -6,6 +6,19 @@
 #include "mouse.h"
 #include "pit.h"
 
+#define PERIPHERAL_HANDLER(id)                                   \
+    __attribute__((interrupt))                                   \
+    void peripheral_handler##id(struct interrupt_frame* frame) { \
+        irq_handler_t handler = peripheral_isrs[id];             \
+        if (handler) {                                           \
+            handler(frame);                                      \
+        } else {                                                 \
+            pic_master_eoi();                                    \
+        }                                                        \
+    }                                                            \
+
+irq_handler_t peripheral_isrs[3];
+
 __attribute__((interrupt))
 void general_protection_fault_isr(struct interrupt_frame* frame) {
     panic("General Protection Fault");
@@ -118,3 +131,7 @@ void pit_isr(struct interrupt_frame* frame) {
     pit_tick();
     pic_master_eoi();
 }
+
+PERIPHERAL_HANDLER(0)
+PERIPHERAL_HANDLER(1)
+PERIPHERAL_HANDLER(2)

@@ -39,6 +39,11 @@
 #define PCI_CONFIG_MIN_GRANT 0x3E
 #define PCI_CONFIG_MAX_LATENCY 0x3F
 
+#define PCI_BAR_IO 0x01
+#define PCI_BAR_LOWMEM 0x02
+#define PCI_BAR_64 0x04
+#define PCI_BAR_PREFETCH 0x08
+
 
 
 #define VENDOR_INTEL 0x8086
@@ -180,6 +185,15 @@
 #define PCI_SP_DPIO 0x1100
 #define PCI_SP_OTHER 0x1180
 
+typedef struct pci_bar_s {
+    union {
+        void* address;
+        uint16_t port;
+    } _;
+    uint64_t size;
+    uint32_t flags;
+} pci_bar_t;
+
 typedef struct pci_device_info_s {
     uint16_t vendor_id;
     uint16_t device_id;
@@ -200,6 +214,8 @@ void pci_write16(uint32_t id, uint32_t reg, uint16_t data);
 
 uint32_t pci_read32(uint32_t id, uint32_t reg);
 void pci_write32(uint32_t id, uint32_t reg, uint32_t data);
+
+void pci_get_bar(pci_bar_t* bar, uint32_t id, uint32_t index);
 
 void pci_visit(uint32_t bus, uint32_t dev, uint32_t func);
 

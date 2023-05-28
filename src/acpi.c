@@ -62,9 +62,9 @@ void acpi_parse_facp(acpi_fadt_t* fadt) {
 void acpi_parse_dt(sdt_header_t* header) {
     terminal_put(header->signature, 4);
     terminal_putchar('\n');
-    if (_strcmp(header->signature, "FACP", 4) == 0) {
+    if (memcmp(header->signature, "FACP", 4) == 0) {
         acpi_parse_facp((acpi_fadt_t*) header);
-    } else if (_strcmp(header->signature, "APIC", 4) == 0) {
+    } else if (memcmp(header->signature, "APIC", 4) == 0) {
         acpi_parse_apic((acpi_madt_t*) header);
     }
 }

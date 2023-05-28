@@ -1,6 +1,7 @@
 #include "lfb_terminal.h"
 #include "lfb.h"
 #include "vga_terminal.h"
+#include "string.h"
 
 terminal_t lfb_terminal = {.init = lfb_terminal_init, .putchar = lfb_terminal_putchar, .clear = lfb_terminal_clear_terminal};
 
@@ -24,7 +25,9 @@ void lfb_copy_from_vga() {
 
             lfb_terminal_putchar(character);
         }
-        lfb_terminal_putchar('\n');
+
+        ++terminal_row;
+        terminal_column = 0;
     }
 
     terminal_row = row;
@@ -38,15 +41,21 @@ void lfb_terminal_set_font(psf_font_t* f) {
 void lfb_terminal_init() {
     lfb_terminal.columns = lfb_width / 8;
     lfb_terminal.rows = lfb_height / 16;
-    terminal_set_row(0);
-    terminal_set_column(0);
 }
 
 void lfb_terminal_putchar(char ch) {
     switch (ch) {
         case '\n': {
             terminal_column = 0;
-            terminal_row++;
+
+            if (terminal_row + 1 >= lfb_terminal.rows) {
+                uint32_t row_length = lfb_width * 16 * 4;
+                memcpy(linear_framebuffer, linear_framebuffer + row_length, row_length * (lfb_terminal.rows - 1));
+                memset(linear_framebuffer + row_length * (lfb_terminal.rows - 1), 0, row_length);
+            } else {
+                ++terminal_row;
+            }
+
             return;
         }
     }
@@ -67,7 +76,9 @@ void lfb_terminal_putchar(char ch) {
         face++;
     }
 
-    terminal_column++;
+    if (++terminal_column >= lfb_terminal.columns) {
+        terminal_putchar('\n');
+    }
 }
 
 void lfb_terminal_clear_terminal() {

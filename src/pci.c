@@ -34,6 +34,40 @@ void pci_write32(uint32_t id, uint32_t reg, uint32_t data) {
     outl(PCI_CONFIG_DATA, data);
 }
 
+static void pci_read_bar(uint32_t id, uint32_t index, uint32_t* address, uint32_t* mask) {
+    uint32_t reg = PCI_CONFIG_BAR0 + index * sizeof(uint32_t);
+    *address = pci_read32(id, reg);
+
+    pci_write32(id, reg, 0xFFFFFFFF);
+    *mask = pci_read32(id, reg);
+
+    pci_write32(id, reg, *address);
+}
+
+void pci_get_bar(pci_bar_t* bar, uint32_t id, uint32_t index) {
+    uint32_t address_low;
+    uint32_t mask_low;
+    pci_read_bar(id, index, &address_low, &mask_low);
+
+    if (address_low & PCI_BAR_64) {
+        uint32_t address_high;
+        uint32_t mask_high;
+        pci_read_bar(id, index + 1, &address_high, &mask_high);
+
+        bar->_.address = (void*) (((uint32_t) address_high << 32) | (address_low & ~0xF));
+        bar->size = ~(((uint64_t) mask_high << 32) | (mask_low & ~0xF)) + 1;
+        bar->flags = address_low & 0xF;
+    } else if (address_low & PCI_BAR_IO) {
+        bar->_.port = (uint16_t) (address_low & ~0x3);
+        bar->size = (uint16_t) (~(mask_low & ~0x3) + 1);
+        bar->flags = address_low & 0x3;
+    } else {
+        bar->_.address = (void*) (address_low & ~0xF);
+        bar->size = ~(mask_low & ~0xF) + 1;
+        bar->flags = address_low & 0xF;
+    }
+}
+
 void pci_visit(uint32_t bus, uint32_t dev, uint32_t func) {
     uint32_t id = pci_get_id(bus, dev, func);
 
@@ -71,12 +105,8 @@ void pci_visit(uint32_t bus, uint32_t dev, uint32_t func) {
         return;
     }
 
-    const driver_t** class_drivers = PCI_DRIVER_TABLE[info.class_code];
-    if (class_drivers) {
-        const driver_t* driver = class_drivers[info.subclass];
-        if (driver && driver->init) {
-            driver->init(bus, dev, func);
-        }
+    for (const driver_t** driver = PCI_DRIVERS; *driver; driver++) {
+        (*driver)->init(&info, bus, dev, func);
     }
 }
 

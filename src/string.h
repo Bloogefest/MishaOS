@@ -5,8 +5,10 @@
 
 size_t strlen(const char* str);
 void* memset(void* data, int value, size_t size);
-char* strstr(const char* a, const char* b);
+char* _strchr(const char* str, int chr, uint32_t limit);
+char* strchr(const char* str, int chr);
 char* _strstr(const char* a, const char* b, size_t limit);
+char* strstr(const char* a, const char* b);
+int memcmp(void* a, void* b, size_t size);
 int strcmp(const char* a, const char* b);
-int _strcmp(const char* a, const char* b, size_t size);
-void* memcpy(void* dst, void* src, size_t n);
+void* memcpy(void* dst, const void* src, size_t n);

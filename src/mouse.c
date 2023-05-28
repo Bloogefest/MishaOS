@@ -107,7 +107,7 @@ void mouse_handle_packet() {
     packet_index = 0;
 }
 
-static void mouse_fill_buffer() {
+void mouse_fill_buffer() {
     for (uint32_t y = 0; y < CURSOR_HEIGHT; y++) {
         for (uint32_t x = 0; x < CURSOR_WIDTH; x++) {
             screen_buffer[y * CURSOR_WIDTH + x] = lfb_get_pixel(mouse_x + x, mouse_y + y);
@@ -115,7 +115,7 @@ static void mouse_fill_buffer() {
     }
 }
 
-static void mouse_restore_buffer() {
+void mouse_restore_buffer() {
     for (uint32_t y = 0; y < CURSOR_HEIGHT; y++) {
         for (uint32_t x = 0; x < CURSOR_WIDTH; x++) {
             lfb_set_pixel(last_mouse_x + x, last_mouse_y + y, screen_buffer[y * CURSOR_WIDTH + x]);

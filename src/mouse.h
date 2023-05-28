@@ -16,6 +16,8 @@ void mouse_write(uint8_t value);
 uint8_t mouse_read();
 void mouse_read_packet();
 void mouse_handle_packet();
+void mouse_fill_buffer();
+void mouse_restore_buffer();
 void mouse_render_cursor();
 void mouse_init();
 void mouse_set_cursor(uint32_t* cursor);

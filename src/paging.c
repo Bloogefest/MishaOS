@@ -232,3 +232,12 @@ void pde_map_memory(page_directory_t* page_directory, pfa_t* pfa, void* virtual_
     page->present = 1;
     page->address = (uint32_t) physical_mem / 0x1000;
 }
+
+void* pde_get_phys_addr(page_directory_t* page_directory, void* virtual_addr) {
+    uint32_t address = (uint32_t) virtual_addr / 0x1000;
+    uint32_t pd_index = address / 1024;
+    uint32_t pt_index = address % 1024;
+
+    uint32_t phys_page = page_directory->tables[pd_index]->entries[pt_index].address;
+    return (void*) (phys_page * 0x1000 + ((uint32_t) virtual_addr & 0xFFF));
+}

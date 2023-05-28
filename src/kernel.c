@@ -20,6 +20,7 @@
 #include "pit.h"
 #include "paging.h"
 #include "heap.h"
+#include "net/net.h"
 
 #include "../mishavfs/vfs.h"
 
@@ -59,7 +60,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
 
         vfs_read_filesystem(&initrd, (uint8_t*) module_start);
         vfs_entry_t* test_entry = vfs_find_entry(&initrd, ".initrd_test");
-        if (!test_entry || _strcmp("optimizedfish", vfs_file_content(&initrd, test_entry, 0), test_entry->size)) {
+        if (!test_entry || memcmp("optimizedfish", vfs_file_content(&initrd, test_entry, 0), test_entry->size)) {
             panic("Failed to verify initrd");
         }
 
@@ -80,6 +81,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     psf_font_t* psf_font = psf_load_font(vfs_file_content(&initrd, font, 0));
 
     terminal = lfb_terminal;
+    terminal_init();
     lfb_terminal_set_font(psf_font);
     lfb_copy_from_vga();
 
@@ -125,6 +127,9 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     idt_encode_entry(&idt[0x0E], (uint32_t) page_fault_isr, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x20], (uint32_t) pit_isr, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x21], (uint32_t) keyboard_isr, 0x08, 0, 0xE);
+    idt_encode_entry(&idt[0x29], (uint32_t) peripheral_handler0, 0x08, 0, 0xE);
+    idt_encode_entry(&idt[0x2A], (uint32_t) peripheral_handler1, 0x08, 0, 0xE);
+    idt_encode_entry(&idt[0x2B], (uint32_t) peripheral_handler2, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x2C], (uint32_t) ps2_mouse_isr, 0x08, 0, 0xE);
     idt_load(sizeof(idt) - 1, (uint32_t) &idt);
 
@@ -169,7 +174,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     mouse_init();
 
     terminal_putstring("Initializing PIT...\n");
-    pit_set_phase(100);
+    pit_set_phase(1000);
 
     terminal_putstring("Enabling IRQs...\n");
     pic_irq_set_master_mask(0b11111000);
@@ -192,9 +197,13 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
 
     ide_init(0x1F0, 0x3F6, 0x170, 0x376, 0x000);
 
+    terminal_putstring("Initializing networking...\n");
+    net_init();
+
     terminal_putstring("Done. MishaOS loaded.\n");
 
     for (;;) {
         mouse_handle_packet();
+        net_poll();
     }
 }
