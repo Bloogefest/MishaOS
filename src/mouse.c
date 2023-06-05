@@ -4,9 +4,6 @@
 #include "terminal.h"
 #include "stdlib.h"
 
-static uint32_t screen_buffer[CURSOR_WIDTH * CURSOR_HEIGHT];
-static uint8_t cursor_rendered = 0;
-
 static uint8_t wheel = 0;
 static uint8_t buttons = 0;
 
@@ -16,12 +13,11 @@ size_t mouse_y = 0;
 size_t last_mouse_x = 0;
 size_t last_mouse_y = 0;
 int mouse_scroll = 0;
+uint8_t mouse_dirty = 0;
 
 static uint8_t packet_bytes = 0;
 static uint8_t packet_index = 0;
 static uint8_t packet[4];
-
-static uint32_t* cursor;
 
 void mouse_wait_write(uint8_t port, uint8_t value) {
     for (uint32_t timeout = 100000; timeout > 0; --timeout) {
@@ -103,47 +99,8 @@ void mouse_handle_packet() {
         mouse_y = lfb_height - 1;
     }
 
-    mouse_render_cursor();
     packet_index = 0;
-}
-
-void mouse_fill_buffer() {
-    for (uint32_t y = 0; y < CURSOR_HEIGHT; y++) {
-        for (uint32_t x = 0; x < CURSOR_WIDTH; x++) {
-            screen_buffer[y * CURSOR_WIDTH + x] = lfb_get_pixel(mouse_x + x, mouse_y + y);
-        }
-    }
-}
-
-void mouse_restore_buffer() {
-    for (uint32_t y = 0; y < CURSOR_HEIGHT; y++) {
-        for (uint32_t x = 0; x < CURSOR_WIDTH; x++) {
-            lfb_set_pixel(last_mouse_x + x, last_mouse_y + y, screen_buffer[y * CURSOR_WIDTH + x]);
-        }
-    }
-}
-
-void mouse_render_cursor() {
-    if (cursor_rendered) {
-        mouse_restore_buffer();
-    } else {
-        mouse_x = 0;
-        mouse_y = 0;
-        cursor_rendered = 1;
-    }
-
-    mouse_fill_buffer();
-
-    for (uint32_t y = 0; y < CURSOR_HEIGHT; y++) {
-        for (uint32_t x = 0; x < CURSOR_WIDTH; x++) {
-            uint32_t color = cursor[y * CURSOR_WIDTH + x];
-            if ((color & 0xFF000000) == 0) {
-                continue;
-            }
-
-            lfb_set_pixel(mouse_x + x, mouse_y + y, color);
-        }
-    }
+    mouse_dirty = 1;
 }
 
 void mouse_init() {
@@ -217,8 +174,4 @@ void mouse_init() {
     outb(0xA1, inb(0xA1) & ~0x10);
 
     packet_bytes = wheel == 0x03 || buttons == 0x04 ? 4 : 3;
-}
-
-void mouse_set_cursor(uint32_t* c) {
-    cursor = c;
 }

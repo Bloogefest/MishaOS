@@ -21,6 +21,9 @@
 #include "paging.h"
 #include "heap.h"
 #include "net/net.h"
+#include "gui/mouse_renderer.h"
+#include "gui/gui.h"
+#include "mc/f3f5.h"
 
 #include "../mishavfs/vfs.h"
 
@@ -198,12 +201,14 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     ide_init(0x1F0, 0x3F6, 0x170, 0x376, 0x000);
 
     terminal_putstring("Initializing networking...\n");
+    net_post_init = f3f5_connect;
     net_init();
 
     terminal_putstring("Done. MishaOS loaded.\n");
 
     for (;;) {
         mouse_handle_packet();
+        gui_redraw();
         net_poll();
     }
 }

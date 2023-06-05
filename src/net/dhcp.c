@@ -1,6 +1,7 @@
 #include "dhcp.h"
 
 #include "net.h"
+#include "ntp.h"
 #include "dns.h"
 #include "buf.h"
 #include "route.h"
@@ -234,6 +235,11 @@ static void dhcp_ack(net_intf_t* intf, const dhcp_header_t* header, const dhcp_o
     }
 
     net_route_table_dump();
+
+    const ipv4_addr_t ntp_server = {{216, 239, 35, 0}};
+    ntp_send(&ntp_server);
+
+    net_post_init();
 }
 
 void dhcp_recv(net_intf_t* intf, const net_buf_t* packet) {

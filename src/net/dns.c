@@ -5,27 +5,104 @@
 #include "port.h"
 #include "in.h"
 #include "udp.h"
+#include "../heap.h"
 #include "../terminal.h"
 #include "../stdlib.h"
 #include "../string.h"
 
-typedef struct dns_header_s {
-    uint16_t id;
-    uint16_t flags;
-    uint16_t question_count;
-    uint16_t answer_count;
-    uint16_t authority_count;
-    uint16_t additional_count;
-} __attribute__((packed)) dns_header_t;
-
 ipv4_addr_t dns_server;
+
+typedef struct dns_entry_s {
+    struct dns_entry_s* next;
+    uint32_t id;
+    const char* host;
+    void* context;
+    dns_callback_t callback;
+} dns_entry_t;
+
+static dns_entry_t* entry_list = 0;
+
+static uint8_t* skip_host(uint8_t* buf) {
+    uint8_t* ptr = buf;
+    for (;;) {
+        uint8_t count = *ptr++;
+        if (count >= 64) {
+            ptr++;
+            break;
+        } else if (count > 0) {
+            ptr += count;
+        } else {
+            break;
+        }
+    }
+
+    return ptr;
+}
+
+uint8_t dns_get_ip4_a(ipv4_addr_t* addr, const net_buf_t* buf) {
+    const dns_header_t* header = (const dns_header_t*) buf->start;
+    uint16_t question_count = net_swap16(header->question_count);
+    uint16_t answer_count = net_swap16(header->answer_count);
+
+    uint8_t* ptr = buf->start + sizeof(dns_header_t);
+
+    for (uint32_t i = 0; i < question_count; ++i) {
+        ptr = skip_host(ptr);
+        ptr += 4;
+    }
+
+    for (uint32_t i = 0; i < answer_count; ++i) {
+        ptr = skip_host(ptr);
+        uint16_t query_type = (ptr[0] << 8) | ptr[1];
+        uint16_t data_len = (ptr[8] << 8) | ptr[9];
+        ptr += 10;
+
+        if (query_type == 1 && data_len == 4) {
+            const ipv4_addr_t* ip = (const ipv4_addr_t*) ptr;
+            addr->bits = ip->bits;
+            return 1;
+        }
+
+        ptr += data_len;
+    }
+
+    return 0;
+}
 
 void dns_recv(net_intf_t* intf, const net_buf_t* buf) {
     dns_dump(buf);
-    // TODO: Process response
+
+    const dns_header_t* header = (const dns_header_t*) buf->start;
+    uint16_t id = net_swap16(header->id);
+
+    dns_entry_t* prev = 0;
+    dns_entry_t* entry;
+    for (entry = entry_list; entry;) {
+        dns_entry_t* next = entry->next;
+        if (entry->id == id) {
+            if (prev) {
+                prev->next = next;
+            } else {
+                entry_list = next;
+            }
+
+            break;
+        }
+
+        prev = entry;
+        entry = next;
+    }
+
+    if (!entry) {
+        terminal_putstring("DNS callback entry not found.\n");
+        return;
+    }
+
+    entry->callback(entry->context, entry->host, buf);
+    free(entry);
 }
 
-void dns_query_host(const char* host, uint32_t id) {
+void dns_query_host(const char* host, uint32_t id, void* ctx, dns_callback_t callback) {
     if (dns_server.bits == ipv4_null_addr.bits) {
         return;
     }
@@ -71,6 +148,18 @@ void dns_query_host(const char* host, uint32_t id) {
     uint32_t src_port = net_ephemeral_port();
 
     dns_dump(packet);
+
+    if (callback) {
+        dns_entry_t* entry = malloc(sizeof(dns_entry_t));
+        memset(entry, 0, sizeof(dns_entry_t));
+        entry->host = host;
+        entry->id = id;
+        entry->context = ctx;
+        entry->callback = callback;
+
+        entry->next = entry_list;
+        entry_list = entry;
+    }
 
     udp_send(&dns_server, PORT_DNS, src_port, packet);
 }

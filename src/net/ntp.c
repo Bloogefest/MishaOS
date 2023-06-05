@@ -107,7 +107,7 @@ void ntp_dump(const net_buf_t* packet) {
     terminal_putstring(" refId=");
     itoa(header->ref_id, str, 16);
     terminal_putstring(str);
-    terminal_putstring(" refTimestamp=");
+    terminal_putstring("\n   NTP: refTimestamp=");
     itoa(header->ref_timestamp, str, 16);
     terminal_putstring(str);
     terminal_putstring(" origTimestamp=");
@@ -116,7 +116,7 @@ void ntp_dump(const net_buf_t* packet) {
     terminal_putstring(" recvTimestamp=");
     itoa(header->recv_timestamp, str, 16);
     terminal_putstring(str);
-    terminal_putstring(" sendTimestamp=");
+    terminal_putstring("\n   NTP: sendTimestamp=");
     itoa(header->send_timestamp, str, 16);
     terminal_putstring(str);
     terminal_putstring(" unixEpoch=");

@@ -8,6 +8,9 @@ cc_flags="-std=gnu99 -ffreestanding -O2 -Wall -Wextra -Imishavfs -Isrc"
 mkdir -p build
 mkdir -p build/net
 mkdir -p build/net/driver
+mkdir -p build/usb
+mkdir -p build/gui
+mkdir -p build/mc
 i686-elf-as src/boot.s -o build/boot.o
 i686-elf-gcc -c src/kernel.c -o build/kernel.o $cc_flags
 i686-elf-gcc -c src/terminal.c -o build/terminal.o $cc_flags
@@ -57,6 +60,17 @@ i686-elf-gcc -c src/net/ntp.c -o build/net/ntp.o $cc_flags
 i686-elf-gcc -c src/net/tcp.c -o build/net/tcp.o $cc_flags
 i686-elf-gcc -c src/net/icmp.c -o build/net/icmp.o $cc_flags
 i686-elf-gcc -c src/net/driver/intel.c -o build/net/driver/intel.o $cc_flags
+i686-elf-gcc -c src/net/driver/rtl8139.c -o build/net/driver/rtl8139.o $cc_flags
+#i686-elf-gcc -c src/usb/controller.c -o build/usb/controller.o $cc_flags
+#i686-elf-gcc -c src/usb/desc.c -o build/usb/desc.o $cc_flags
+#i686-elf-gcc -c src/usb/dev.c -o build/usb/dev.o $cc_flags
+#i686-elf-gcc -c src/usb/driver.c -o build/usb/driver.o $cc_flags
+#i686-elf-gcc -c src/usb/ehci.c -o build/usb/ehci.o $cc_flags
+#i686-elf-gcc -c src/usb/uhci.c -o build/usb/uhci.o $cc_flags
+i686-elf-gcc -c src/gui/mouse_renderer.c -o build/gui/mouse_renderer.o $cc_flags
+i686-elf-gcc -c src/gui/gui.c -o build/gui/gui.o $cc_flags
+i686-elf-gcc -c src/mc/f3f5.c -o build/mc/f3f5.o $cc_flags
+i686-elf-gcc -c src/mc/mcprotocol.c -o build/mc/mcprotocol.o $cc_flags
 
 i686-elf-gcc -T linker.ld -o build/mishaos.bin -ffreestanding -O2 -nostdlib \
         build/idt_s.o \
@@ -108,7 +122,20 @@ i686-elf-gcc -T linker.ld -o build/mishaos.bin -ffreestanding -O2 -nostdlib \
         build/net/tcp.o \
         build/net/icmp.o \
         build/net/driver/intel.o \
+        build/net/driver/rtl8139.o \
+        build/gui/mouse_renderer.o \
+        build/gui/gui.o \
+        build/mc/f3f5.o \
+        build/mc/mcprotocol.o \
         -lgcc
+
+
+#        build/usb/controller.o \
+#        build/usb/desc.o \
+#        build/usb/dev.o \
+#        build/usb/driver.o \
+#        build/usb/ehci.o \
+#        build/usb/uhci.o \
 
 # Build mishavfs
 pushd mishavfs

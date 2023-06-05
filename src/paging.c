@@ -26,6 +26,14 @@ void pfa_read_memory_map(pfa_t* pfa, struct multiboot* multiboot, kernel_meminfo
     multiboot_memory_map_t* entry = (multiboot_memory_map_t*) multiboot->mmap_addr;
     while ((uint32_t) entry < multiboot->mmap_addr + multiboot->mmap_length) {
         if (entry->type == MULTIBOOT_MEMORY_AVAILABLE) {
+            if ((entry->addr & 0xFFFFFFFF) != entry->addr) {
+                continue;
+            }
+
+            if (entry->len > UINT32_MAX) {
+                entry->len = UINT32_MAX;
+            }
+
             uint32_t address = (uint32_t) entry->addr;
             uint32_t length = (uint32_t) entry->len;
 

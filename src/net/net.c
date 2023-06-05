@@ -7,6 +7,8 @@
 
 uint8_t net_trace;
 
+void(*net_post_init)();
+
 void net_init() {
     loopback_init();
     arp_init();
