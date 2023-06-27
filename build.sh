@@ -2,7 +2,7 @@
 # TODO: Makefile
 set -e
 
-cc_flags="-std=gnu99 -ffreestanding -O2 -Wall -Wextra -Imishavfs -Isrc"
+cc_flags="-std=gnu99 -ffreestanding -Wall -O2 -Wextra -Imishavfs -Isrc"
 
 # Build sources
 mkdir -p build
@@ -18,6 +18,7 @@ i686-elf-as src/gdt.s -o build/gdt_s.o
 i686-elf-gcc -c src/gdt.c -o build/gdt.o $cc_flags
 i686-elf-as src/idt.s -o build/idt_s.o
 i686-elf-gcc -c src/idt.c -o build/idt.o $cc_flags
+i686-elf-gcc -c src/gpd.c -o build/gpd.o $cc_flags -O0
 i686-elf-gcc -c src/isrs.c -o build/isrs.o $cc_flags -mgeneral-regs-only -Wno-unused-parameter
 i686-elf-gcc -c src/panic.c -o build/panic.o $cc_flags
 i686-elf-gcc -c src/string.c -o build/string.o $cc_flags
@@ -75,6 +76,7 @@ i686-elf-gcc -c src/mc/mcprotocol.c -o build/mc/mcprotocol.o $cc_flags
 i686-elf-gcc -T linker.ld -o build/mishaos.bin -ffreestanding -O2 -nostdlib \
         build/idt_s.o \
         build/idt.o \
+        build/gpd.o \
         build/boot.o \
         build/kernel.o \
         build/terminal.o \

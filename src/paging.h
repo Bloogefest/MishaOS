@@ -31,14 +31,15 @@ typedef struct page_s {
 
 typedef struct page_table_s {
     page_t entries[1024];
-} page_table_t;
+} __attribute__((packed)) page_table_t;
 
 typedef struct page_directory_s {
     page_table_t* tables[1024];
     uint32_t physical_tables[1024];
     uint32_t physical_address;
-} page_directory_t;
+} __attribute__((packed)) page_directory_t;
 
 void pde_init(page_directory_t* page_directory);
 void pde_map_memory(page_directory_t* page_directory, pfa_t* pfa, void* virtual_mem, void* physical_mem);
 void* pde_get_phys_addr(page_directory_t* page_directory, void* virtual_addr);
+void enable_paging(page_directory_t* page_directory);

@@ -17,6 +17,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "mouse.h"
+#include "gpd.h"
 #include "pit.h"
 #include "paging.h"
 #include "heap.h"
@@ -26,9 +27,6 @@
 #include "mc/f3f5.h"
 
 #include "../mishavfs/vfs.h"
-
-page_directory_t page_directory;
-pfa_t pfa;
 
 void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t esp) {
     terminal = vga_terminal;
@@ -153,11 +151,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
         pde_map_memory(&page_directory, &pfa, (void*) i, (void*) i);
     }
 
-    asm volatile("mov %0, %%cr3" : : "r"(page_directory.physical_address));
-    uint32_t cr0;
-    asm volatile("mov %%cr0, %0" : "=r"(cr0));
-    cr0 |= 0x80000000;
-    asm volatile("mov %0, %%cr0" : : "r"(cr0));
+    enable_paging(&page_directory);
 
     terminal_putstring("Initializing heap...\n");
     heap_init((void*) 2147483648U, 0x10); // TODO: 64-bit kernel for larger address space
@@ -181,7 +175,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
 
     terminal_putstring("Enabling IRQs...\n");
     pic_irq_set_master_mask(0b11111000);
-    pic_irq_set_slave_mask(0b11101111);
+    pic_irq_set_slave_mask(0b11100001);
 
     asm("sti");
 

@@ -4,7 +4,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 uint8_t BUFFER[1024];
 

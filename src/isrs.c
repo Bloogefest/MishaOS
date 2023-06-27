@@ -21,16 +21,19 @@ irq_handler_t peripheral_isrs[3];
 
 __attribute__((interrupt))
 void general_protection_fault_isr(struct interrupt_frame* frame) {
+    asm("cli");
     panic("General Protection Fault");
 }
 
 __attribute__((interrupt))
 void double_fault_isr(struct interrupt_frame* frame) {
+    asm("cli");
     panic("Double Fault");
 }
 
 __attribute__((interrupt))
 void page_fault_isr(struct interrupt_frame* frame) {
+    asm("cli");
     panic("Page Fault");
 }
 
@@ -63,6 +66,7 @@ static uint8_t SHIFT;
 
 __attribute__((interrupt))
 void keyboard_isr(struct interrupt_frame* frame) {
+    asm("cli");
     uint8_t scancode = inb(0x60);
     switch (scancode) {
         case 0x1C: { // Enter pressed
@@ -118,18 +122,23 @@ void keyboard_isr(struct interrupt_frame* frame) {
     }
 
     pic_master_eoi();
+    asm("sti");
 }
 
 __attribute__((interrupt))
 void ps2_mouse_isr(struct interrupt_frame* frame) {
+    asm("cli");
     mouse_read_packet();
     pic_slave_eoi();
+    asm("sti");
 }
 
 __attribute__((interrupt))
 void pit_isr(struct interrupt_frame* frame) {
+    asm("cli");
     pit_tick();
     pic_master_eoi();
+    asm("sti");
 }
 
 PERIPHERAL_HANDLER(0)

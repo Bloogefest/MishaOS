@@ -4,6 +4,10 @@
 #include "io.h"
 #include "driver.h"
 
+uint32_t pci_get_id(uint32_t bus, uint32_t dev, uint32_t func) {
+    return bus << 16 | dev << 11 | func << 8;
+}
+
 uint8_t pci_read8(uint32_t id, uint32_t reg) {
     outl(PCI_CONFIG_ADDR, 0x80000000 | id | (reg & 0xFC));
     return inb(PCI_CONFIG_DATA + (reg & 0x03));

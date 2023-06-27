@@ -249,3 +249,11 @@ void* pde_get_phys_addr(page_directory_t* page_directory, void* virtual_addr) {
     uint32_t phys_page = page_directory->tables[pd_index]->entries[pt_index].address;
     return (void*) (phys_page * 0x1000 + ((uint32_t) virtual_addr & 0xFFF));
 }
+
+void enable_paging(page_directory_t* page_directory) {
+    asm volatile("mov %0, %%cr3" : : "r"(page_directory->physical_address));
+    uint32_t cr0;
+    asm volatile("mov %%cr0, %0" : "=r"(cr0));
+    cr0 |= 0x80000000;
+    asm volatile("mov %0, %%cr0" : : "r"(cr0));
+}

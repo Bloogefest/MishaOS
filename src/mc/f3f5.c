@@ -8,7 +8,7 @@
 #include "../pit.h"
 
 static const char* HOST = "game.f3f5.online";
-static const uint16_t PORT = 25587;
+static const uint16_t PORT = 25607;
 
 static ipv4_addr_t addr;
 
@@ -65,7 +65,11 @@ void f3f5_on_data(tcp_conn_t* conn, const uint8_t* data, uint32_t len) {
 }
 
 void f3f5_on_error(tcp_conn_t* conn, uint32_t error) {
-    terminal_putstring("Error occurred in the connection.\n");
+    char num[20];
+    terminal_putstring("Error occurred in the connection: ");
+    itoa(error, num, 10);
+    terminal_putstring(num);
+    terminal_putstring("\n");
 }
 
 void f3f5_on_ping_connect(tcp_conn_t* conn) {

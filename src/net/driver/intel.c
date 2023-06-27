@@ -18,7 +18,6 @@
 
 #define REG_CTRL 0x0000
 #define REG_STATUS 0x0008
-#define REG_EEPROM 0x0014
 #define REG_CTRL_EXT 0x0018
 #define REG_IMASK 0x00D0
 #define REG_RCTRL 0x0100
@@ -123,7 +122,6 @@ typedef struct eth_intel_device_s {
     net_buf_t* rx_bufs[RX_DESC_COUNT];
     net_buf_t* tx_bufs[TX_DESC_COUNT];
     eth_addr_t mac_address;
-    uint8_t eeprom;
 } eth_intel_device_t;
 
 static eth_intel_device_t device;
@@ -149,53 +147,12 @@ static uint32_t eth_intel_read_command(uint16_t address) {
     }
 }
 
-static uint32_t eeprom_read(uint8_t address) {
-    uint32_t data;
-
-    if (device.eeprom) {
-        eth_intel_write_command(REG_EEPROM, 1 | ((uint32_t) address << 8));
-        while (!((data = eth_intel_read_command(REG_EEPROM)) & (1 << 4)));
-    } else {
-        eth_intel_write_command(REG_EEPROM, 1 | ((uint32_t) address << 2));
-        while (!((data = eth_intel_read_command(REG_EEPROM)) & (1 << 1)));
-    }
-
-    return data >> 16;
-}
-
-static uint8_t detect_eeprom() {
-    eth_intel_write_command(REG_EEPROM, 0x01);
-
-    for (uint32_t i = 0; i < 1000 && !device.eeprom; ++i) {
-        uint32_t value = eth_intel_read_command(REG_EEPROM);
-        if (value & 0x10) {
-            device.eeprom = 1;
-        } else {
-            device.eeprom = 0;
-        }
-    }
-
-    return device.eeprom;
-}
-
 static uint8_t read_mac_address() {
-    if (device.eeprom) {
-        uint32_t value = eeprom_read(0);
-        device.mac_address.address[0] = value & 0xFF;
-        device.mac_address.address[1] = value >> 8;
-        value = eeprom_read(1);
-        device.mac_address.address[2] = value & 0xFF;
-        device.mac_address.address[3] = value >> 8;
-        value = eeprom_read(2);
-        device.mac_address.address[4] = value & 0xFF;
-        device.mac_address.address[5] = value >> 8;
+    uint8_t* mem_base = (uint8_t*) (device.mmio_base + 0x5400);
+    if (*(uint32_t*) mem_base) {
+        memcpy(device.mac_address.address, mem_base, 6);
     } else {
-        uint8_t* mem_base = (uint8_t*) (device.mmio_base + 0x5400);
-        if (*(uint32_t*) mem_base) {
-            memcpy(device.mac_address.address, mem_base, 6);
-        } else {
-            return 0;
-        }
+        return 0;
     }
 
     return 1;
@@ -344,8 +301,6 @@ void intel_net_driver_init(pci_device_info_t* info, uint32_t bus, uint32_t dev, 
     uint32_t pci_status = pci_read32(id, PCI_CONFIG_COMMAND);
     pci_status |= 4;
     pci_write32(id, PCI_CONFIG_COMMAND, pci_status);
-
-    detect_eeprom();
 
     if (!read_mac_address()) {
         terminal_putstring("Unable to read MAC address.\n");

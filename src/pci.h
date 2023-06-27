@@ -202,9 +202,7 @@ typedef struct pci_device_info_s {
     uint8_t prog_intf;
 } pci_device_info_t;
 
-inline uint32_t pci_get_id(uint32_t bus, uint32_t dev, uint32_t func) {
-    return bus << 16 | dev << 11 | func << 8;
-}
+uint32_t pci_get_id(uint32_t bus, uint32_t dev, uint32_t func);
 
 uint8_t pci_read8(uint32_t id, uint32_t reg);
 void pci_write8(uint32_t id, uint32_t reg, uint8_t data);

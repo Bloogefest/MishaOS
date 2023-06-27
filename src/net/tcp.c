@@ -1,6 +1,5 @@
 #include "tcp.h"
 
-#include "net.h"
 #include "buf.h"
 #include "checksum.h"
 #include "ipv4.h"
