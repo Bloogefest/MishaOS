@@ -5,17 +5,21 @@
 .set MAGIC, 0x1BADB002
 .set CHECKSUM, -(MAGIC + FLAGS)
 
+.extern kernel_physical_start
+.extern kernel_physical_end
+.extern bss_start
+
 .section .multiboot
 .align 4
 multiboot:
     .long MAGIC
     .long FLAGS
     .long CHECKSUM
-    .long 0x00000000
-    .long 0x00000000
-    .long 0x00000000
-    .long 0x00000000
-    .long 0x00000000
+    .long multiboot
+    .long kernel_physical_start
+    .long bss_start
+    .long kernel_physical_end
+    .long _start
     .long 0x00000000
     .long 0
     .long 0

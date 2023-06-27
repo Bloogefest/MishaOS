@@ -140,7 +140,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
 
     multiboot_memory_map_t* entry = (multiboot_memory_map_t*) multiboot->mmap_addr;
     while ((uint32_t) entry < multiboot->mmap_addr + multiboot->mmap_length) {
-        for (uint32_t i = (uint32_t) entry->addr; i <= (uint32_t) entry->len; i += 0x1000) {
+        for (uint32_t i = (uint32_t) entry->addr & 0xFFFF; i <= (uint32_t) entry->len; i += 0x1000) {
             pde_map_memory(&page_directory, &pfa, (void*) i, (void*) i);
         }
 

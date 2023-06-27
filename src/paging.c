@@ -81,6 +81,7 @@ void pfa_read_memory_map(pfa_t* pfa, struct multiboot* multiboot, kernel_meminfo
     pfa->size = bitmap_size;
     pfa->buffer = (void*) largest_free_memory;
     memset(pfa->buffer, 0, largest_free_length);
+    pfa_lock_pages(pfa, pfa->buffer, pfa->size / 0x1000 + 1);
     pfa_lock_pages(pfa, (void*) meminfo->kernel_physical_start,
                    (meminfo->kernel_physical_end - meminfo->kernel_physical_start) / 0x1000 + 1);
     pfa_lock_pages(pfa, (void*) initrd_start, (initrd_end - initrd_start) / 0x1000 + 1);

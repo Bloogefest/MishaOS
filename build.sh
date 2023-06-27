@@ -73,64 +73,63 @@ i686-elf-gcc -c src/gui/gui.c -o build/gui/gui.o $cc_flags
 i686-elf-gcc -c src/mc/f3f5.c -o build/mc/f3f5.o $cc_flags
 i686-elf-gcc -c src/mc/mcprotocol.c -o build/mc/mcprotocol.o $cc_flags
 
-i686-elf-gcc -T linker.ld -o build/mishaos.bin -ffreestanding -O2 -nostdlib \
-        build/idt_s.o \
-        build/idt.o \
-        build/gpd.o \
-        build/boot.o \
-        build/kernel.o \
-        build/terminal.o \
-        build/gdt_s.o \
-        build/gdt.o \
-        build/isrs.o \
-        build/panic.o \
-        build/string.o \
-        build/io.o \
-        build/pic.o \
-        build/acpi.o \
-        build/stdlib.o \
-        build/pci.o \
-        build/driver.o \
-        build/ide.o \
-        build/vfs.o \
-        build/vga_terminal.o \
-        build/lfb.o \
-        build/psf_font.o \
-        build/lfb_terminal.o \
-        build/tga.o \
-        build/mouse.o \
-        build/sleep.o \
-        build/pit.o \
-        build/paging.o \
-        build/heap.o \
-        build/ctype.o \
-        build/time.o \
-        build/rtc.o \
-        build/net/addr.o \
-        build/net/buf.o \
-        build/net/eth.o \
-        build/net/intf.o \
-        build/net/ipv4.o \
-        build/net/checksum.o \
-        build/net/route.o \
-        build/net/arp.o \
-        build/net/net.o \
-        build/net/loopback.o \
-        build/net/dns.o \
-        build/net/udp.o \
-        build/net/port.o \
-        build/net/dhcp.o \
-        build/net/ntp.o \
-        build/net/tcp.o \
-        build/net/icmp.o \
-        build/net/driver/intel.o \
-        build/net/driver/rtl8139.o \
-        build/gui/mouse_renderer.o \
-        build/gui/gui.o \
-        build/mc/f3f5.o \
-        build/mc/mcprotocol.o \
-        -lgcc
+objects="build/idt_s.o \
+                build/idt.o \
+                build/gpd.o \
+                build/boot.o \
+                build/kernel.o \
+                build/terminal.o \
+                build/gdt_s.o \
+                build/gdt.o \
+                build/isrs.o \
+                build/panic.o \
+                build/string.o \
+                build/io.o \
+                build/pic.o \
+                build/acpi.o \
+                build/stdlib.o \
+                build/pci.o \
+                build/driver.o \
+                build/ide.o \
+                build/vfs.o \
+                build/vga_terminal.o \
+                build/lfb.o \
+                build/psf_font.o \
+                build/lfb_terminal.o \
+                build/tga.o \
+                build/mouse.o \
+                build/sleep.o \
+                build/pit.o \
+                build/paging.o \
+                build/heap.o \
+                build/ctype.o \
+                build/time.o \
+                build/rtc.o \
+                build/net/addr.o \
+                build/net/buf.o \
+                build/net/eth.o \
+                build/net/intf.o \
+                build/net/ipv4.o \
+                build/net/checksum.o \
+                build/net/route.o \
+                build/net/arp.o \
+                build/net/net.o \
+                build/net/loopback.o \
+                build/net/dns.o \
+                build/net/udp.o \
+                build/net/port.o \
+                build/net/dhcp.o \
+                build/net/ntp.o \
+                build/net/tcp.o \
+                build/net/icmp.o \
+                build/net/driver/intel.o \
+                build/net/driver/rtl8139.o \
+                build/gui/mouse_renderer.o \
+                build/gui/gui.o \
+                build/mc/f3f5.o \
+                build/mc/mcprotocol.o"
 
+i686-elf-gcc -T linker_lgbt.ld -o build/mishaos.bin -ffreestanding -O2 -nostdlib $objects -lgcc
 
 #        build/usb/controller.o \
 #        build/usb/desc.o \
@@ -148,9 +147,15 @@ popd
 rm -f build/initrd.img
 mishavfs/build/misha.mkvfs --label=INITRD initrd build/initrd.img
 
+pushd mishaboot
+./build.sh
+popd
+
+i686-elf-gcc -T linker_grub.ld -o build/mishaos.bin -ffreestanding -O2 -nostdlib $objects -lgcc
+
 # Create bootable image
 mkdir -p build/iso/boot/grub
 cp -f grub.cfg build/iso/boot/grub
 cp -f build/mishaos.bin build/iso/boot
-mv -f build/initrd.img build/iso/boot
-grub-mkrescue -o mishaos.iso build/iso
+cp -f build/initrd.img build/iso/boot
+grub-mkrescue -o mishaos_grub.iso build/iso
