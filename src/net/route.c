@@ -1,6 +1,6 @@
 #include "route.h"
 
-#include "../heap.h"
+#include "../gpd.h"
 #include "../string.h"
 #include "../terminal.h"
 
@@ -17,7 +17,7 @@ const net_route_t* net_find_route(const ipv4_addr_t* dst) {
 }
 
 void net_add_route(const ipv4_addr_t* dst, const ipv4_addr_t* mask, const ipv4_addr_t* gateway, net_intf_t* intf) {
-    net_route_t* route = malloc(sizeof(net_route_t));
+    net_route_t* route = pfa_request_page(&pfa);
     memset(route, 0, sizeof(net_route_t));
     route->dst = *dst;
     route->mask = *mask;

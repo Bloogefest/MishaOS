@@ -50,8 +50,9 @@ void lfb_terminal_putchar(char ch) {
 
             if (terminal_row + 1 >= lfb_terminal.rows) {
                 uint32_t row_length = lfb_width * 16 * 4;
-                memcpy(linear_framebuffer, linear_framebuffer + row_length, row_length * (lfb_terminal.rows - 1));
-                memset(linear_framebuffer + row_length * (lfb_terminal.rows - 1), 0, row_length);
+                memcpy(lfb_get_double_buffer(), lfb_get_double_buffer() + row_length, row_length * (lfb_terminal.rows - 1));
+                memset(lfb_get_double_buffer() + row_length * (lfb_terminal.rows - 1), 0, row_length);
+                memcpy(linear_framebuffer, lfb_get_double_buffer(), lfb_width * lfb_height * 4);
             } else {
                 ++terminal_row;
             }
@@ -70,7 +71,7 @@ void lfb_terminal_putchar(char ch) {
             uint32_t color = (*face & (0b10000000 >> i)) > 0
                              ? 0xFFFFFFFF : 0x00000000;
 
-            *((uint32_t*) linear_framebuffer + nx + ny * lfb_width) = color;
+            lfb_set_pixel(nx, ny, color);
         }
 
         face++;

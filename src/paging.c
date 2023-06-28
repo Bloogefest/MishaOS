@@ -1,5 +1,6 @@
 #include "paging.h"
 #include "string.h"
+#include "lfb.h"
 
 uint32_t free_memory;
 uint32_t reserved_memory;
@@ -26,8 +27,12 @@ void pfa_read_memory_map(pfa_t* pfa, struct multiboot* multiboot, kernel_meminfo
     multiboot_memory_map_t* entry = (multiboot_memory_map_t*) multiboot->mmap_addr;
     while ((uint32_t) entry < multiboot->mmap_addr + multiboot->mmap_length) {
         if (entry->type == MULTIBOOT_MEMORY_AVAILABLE) {
-            if ((entry->addr & 0xFFFFFFFF) != entry->addr) {
-                continue;
+            if (entry->addr < 0x100000) {
+                goto next;
+            }
+
+            if (entry->addr > UINT32_MAX) {
+                goto next;
             }
 
             if (entry->len > UINT32_MAX) {
@@ -37,25 +42,13 @@ void pfa_read_memory_map(pfa_t* pfa, struct multiboot* multiboot, kernel_meminfo
             uint32_t address = (uint32_t) entry->addr;
             uint32_t length = (uint32_t) entry->len;
 
-            if (address <= meminfo->kernel_physical_start && address + length >= meminfo->kernel_physical_start) {
-                length = meminfo->kernel_physical_end - address - 1;
-            }
-
-            if (address >= meminfo->kernel_physical_start && address + length <= meminfo->kernel_physical_end) {
-                goto next;
-            }
-
             if (address >= meminfo->kernel_physical_start && address + length >= meminfo->kernel_physical_end) {
                 uint32_t end = address + length;
                 address = initrd_end;
                 length = end - address;
-            }
-
-            if (address <= initrd_start && address + length >= initrd_start) {
-                length = initrd_end - address - 1;
-            }
-
-            if (address >= initrd_start && address + length <= initrd_end) {
+            } else if (address <= meminfo->kernel_physical_start && address + length >= meminfo->kernel_physical_start) {
+                length = meminfo->kernel_physical_end - address - 1;
+            } else if (address >= meminfo->kernel_physical_start && address + length <= meminfo->kernel_physical_end) {
                 goto next;
             }
 
@@ -63,6 +56,10 @@ void pfa_read_memory_map(pfa_t* pfa, struct multiboot* multiboot, kernel_meminfo
                 uint32_t end = address + length;
                 address = initrd_end;
                 length = end - address;
+            } else if (address <= initrd_start && address + length >= initrd_start) {
+                length = initrd_end - address - 1;
+            } else if (address >= initrd_start && address + length <= initrd_end) {
+                goto next;
             }
 
             if (length > largest_free_length) {
@@ -80,11 +77,12 @@ void pfa_read_memory_map(pfa_t* pfa, struct multiboot* multiboot, kernel_meminfo
 
     pfa->size = bitmap_size;
     pfa->buffer = (void*) largest_free_memory;
-    memset(pfa->buffer, 0, largest_free_length);
-    pfa_lock_pages(pfa, pfa->buffer, pfa->size / 0x1000 + 1);
+    memset(pfa->buffer, 0, bitmap_size);
     pfa_lock_pages(pfa, (void*) meminfo->kernel_physical_start,
                    (meminfo->kernel_physical_end - meminfo->kernel_physical_start) / 0x1000 + 1);
     pfa_lock_pages(pfa, (void*) initrd_start, (initrd_end - initrd_start) / 0x1000 + 1);
+    free_memory = largest_free_length;
+    pfa_lock_pages(pfa, pfa->buffer, pfa->size / 0x1000 + 1);
 
     entry = (multiboot_memory_map_t*) multiboot->mmap_addr;
     while ((uint32_t) entry < multiboot->mmap_addr + multiboot->mmap_length) {

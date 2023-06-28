@@ -34,7 +34,7 @@ void acpi_parse_apic(acpi_madt_t* madt) {
 
         switch (header->type) {
             case LOCAL_APIC: {
-                terminal_putstring("Found CPU\n");
+                terminal_putstring("[ACPI] Found CPU\n");
                 apic_local_apic_t* local_apic = (apic_local_apic_t*) header;
                 if (acpi_cpu_count < sizeof(acpi_cpu_ids)) {
                     acpi_cpu_ids[acpi_cpu_count++] = local_apic->apic_id;
@@ -44,7 +44,7 @@ void acpi_parse_apic(acpi_madt_t* madt) {
             }
 
             case IO_APIC: {
-                terminal_putstring("Found I/O APIC\n");
+                terminal_putstring("[ACPI] Found I/O APIC\n");
                 apic_io_apic_t* io_apic = (apic_io_apic_t*) header;
                 io_apic_address = (uint8_t*) io_apic->io_apic_address;
                 break;
@@ -60,8 +60,9 @@ void acpi_parse_facp(acpi_fadt_t* fadt) {
 }
 
 void acpi_parse_dt(sdt_header_t* header) {
+    terminal_putstring("[ACPI] Found ");
     terminal_put(header->signature, 4);
-    terminal_putchar('\n');
+    terminal_putstring(" header\n");
     if (memcmp(header->signature, "FACP", 4) == 0) {
         acpi_parse_facp((acpi_fadt_t*) header);
     } else if (memcmp(header->signature, "APIC", 4) == 0) {

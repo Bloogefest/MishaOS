@@ -6,7 +6,6 @@
 #include "../../io.h"
 #include "../../pic.h"
 #include "../../isrs.h"
-#include "../../heap.h"
 #include "../../paging.h"
 #include "../../string.h"
 #include "../../terminal.h"
@@ -159,7 +158,7 @@ static uint8_t read_mac_address() {
 }
 
 static void eth_intel_rx_init() {
-    eth_intel_rx_desc_t* descs = malloc(sizeof(eth_intel_rx_desc_t) * RX_DESC_COUNT + 16);
+    eth_intel_rx_desc_t* descs = pfa_request_page(&pfa);
     uint32_t phys_addr = (uint32_t) pde_get_phys_addr(&page_directory, descs);
 
     for (uint32_t i = 0; i < RX_DESC_COUNT; i++) {
@@ -186,7 +185,7 @@ static void eth_intel_rx_init() {
 }
 
 static void eth_intel_tx_init() {
-    eth_intel_tx_desc_t* descs = malloc(sizeof(eth_intel_tx_desc_t) * TX_DESC_COUNT + 16);
+    eth_intel_tx_desc_t* descs = pfa_request_page(&pfa);
     uint32_t phys_addr = (uint32_t) pde_get_phys_addr(&page_directory, descs);
 
     for (uint32_t i = 0; i < TX_DESC_COUNT; i++) {

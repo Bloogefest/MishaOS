@@ -1,13 +1,13 @@
 #include "intf.h"
 
-#include "../heap.h"
+#include "../gpd.h"
 #include "../string.h"
 
 net_intf_t* net_intf_list = 0;
 static net_intf_t* net_intf_last = 0;
 
 net_intf_t* net_intf_create() {
-    net_intf_t* intf = malloc(sizeof(net_intf_t));
+    net_intf_t* intf = pfa_request_page(&pfa);
     memset(intf, 0, sizeof(net_intf_t));
     return intf;
 }

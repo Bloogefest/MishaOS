@@ -75,8 +75,32 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
         panic("Invalid multiboot header.");
     }
 
+    uint32_t* double_framebuffer = (uint32_t*) (16 * 1024 * 1024);
+
     vfs_entry_t* logo = vfs_find_entry(&initrd, "logo.tga");
-    tga_parse((uint32_t*) linear_framebuffer - 2 /* i'm not sure if this is safe */, vfs_file_content(&initrd, logo, 0), logo->size);
+    tga_parse(double_framebuffer, vfs_file_content(&initrd, logo, 0), logo->size);
+
+    uint32_t logo_width = double_framebuffer[0];
+    uint32_t logo_height = double_framebuffer[1];
+    uint32_t logo_x = lfb_width / 2 - logo_width / 2;
+    uint32_t logo_y = lfb_height / 2 - logo_height / 2;
+    for (int i = logo_height - 1; i >= 0; i--) {
+        void* reloc_address = double_framebuffer + lfb_width * i + logo_y * lfb_width + logo_x;
+        void* load_address = double_framebuffer + logo_width * i + 2;
+        memcpy(reloc_address, load_address, logo_width * 4);
+    }
+
+    for (uint32_t i = 0; i < lfb_height; i++) {
+        if (i <= logo_y || i >= logo_y + logo_height) {
+            memset(double_framebuffer + i * lfb_width, 0, lfb_width * 4);
+        } else {
+            memset(double_framebuffer + i * lfb_width, 0, logo_x * 4);
+            memset(double_framebuffer + i * lfb_width + logo_x + logo_width, 0, (lfb_width - logo_width - logo_x) * 4);
+        }
+    }
+
+    memcpy(linear_framebuffer, double_framebuffer, lfb_width * lfb_height * 4);
+    lfb_set_double_buffer(double_framebuffer);
 
     vfs_entry_t* font = vfs_find_entry(&initrd, "zap-vga16.psf");
     psf_font_t* psf_font = psf_load_font(vfs_file_content(&initrd, font, 0));
@@ -138,23 +162,25 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     pfa_read_memory_map(&pfa, multiboot, &meminfo, module_start, module_end);
     pde_init(&page_directory);
 
-    multiboot_memory_map_t* entry = (multiboot_memory_map_t*) multiboot->mmap_addr;
-    while ((uint32_t) entry < multiboot->mmap_addr + multiboot->mmap_length) {
-        for (uint32_t i = (uint32_t) entry->addr & 0xFFFF; i <= (uint32_t) entry->len; i += 0x1000) {
-            pde_map_memory(&page_directory, &pfa, (void*) i, (void*) i);
-        }
-
-        entry = (multiboot_memory_map_t*) (((uint32_t) entry) + entry->size + sizeof(entry->size));
+    for (uint32_t i = (uint32_t) double_framebuffer; i < (uint32_t) double_framebuffer + lfb_height * lfb_width * 4 + 0x1000; i += 0x1000) {
+        pfa_lock_page(&pfa, (void*) i);
+        pde_map_memory(&page_directory, &pfa, (void*) i, (void*) i);
     }
 
     for (uint32_t i = (uint32_t) linear_framebuffer; i < (uint32_t) linear_framebuffer + lfb_height * lfb_width * 4 + 0x1000; i += 0x1000) {
+        pfa_lock_page(&pfa, (void*) i);
+        pde_map_memory(&page_directory, &pfa, (void*) i, (void*) i);
+    }
+
+    for (uint32_t i = (uint32_t) pfa_request_page(&pfa); i <= pfa_free_memory(); i += 0x1000) {
         pde_map_memory(&page_directory, &pfa, (void*) i, (void*) i);
     }
 
     enable_paging(&page_directory);
+    memcpy(linear_framebuffer, double_framebuffer, lfb_width * lfb_height * 4);
 
     terminal_putstring("Initializing heap...\n");
-    heap_init((void*) 2147483648U, 0x10); // TODO: 64-bit kernel for larger address space
+    heap_init((void*) (2147483648U & ~0xFFFU), 0x1000); // TODO: 64-bit kernel for larger address space
 
     terminal_putstring("Remapping PIC...\n");
     pic_remap(0x20, 0x28);

@@ -38,8 +38,8 @@ i686-elf-gcc -c src/tga.c -o build/tga.o $cc_flags
 i686-elf-gcc -c src/mouse.c -o build/mouse.o $cc_flags
 i686-elf-gcc -c src/pit.c -o build/pit.o $cc_flags
 i686-elf-gcc -c src/sleep.c -o build/sleep.o $cc_flags
-i686-elf-gcc -c src/paging.c -o build/paging.o $cc_flags
-i686-elf-gcc -c src/heap.c -o build/heap.o $cc_flags
+i686-elf-gcc -c src/paging.c -o build/paging.o $cc_flags -O0
+i686-elf-gcc -c src/heap.c -o build/heap.o $cc_flags -O0
 i686-elf-gcc -c src/ctype.c -o build/ctype.o $cc_flags
 i686-elf-gcc -c src/time.c -o build/time.o $cc_flags
 i686-elf-gcc -c src/rtc.c -o build/rtc.o $cc_flags
@@ -129,7 +129,7 @@ objects="build/idt_s.o \
                 build/mc/f3f5.o \
                 build/mc/mcprotocol.o"
 
-i686-elf-gcc -T linker_lgbt.ld -o build/mishaos.bin -ffreestanding -O2 -nostdlib $objects -lgcc
+i686-elf-gcc -T linker.ld -o build/mishaos.bin -ffreestanding -O2 -nostdlib $objects -lgcc
 
 #        build/usb/controller.o \
 #        build/usb/desc.o \
@@ -147,11 +147,9 @@ popd
 rm -f build/initrd.img
 mishavfs/build/misha.mkvfs --label=INITRD initrd build/initrd.img
 
-pushd mishaboot
+pushd mishaboot/lgbt
 ./build.sh
 popd
-
-i686-elf-gcc -T linker_grub.ld -o build/mishaos.bin -ffreestanding -O2 -nostdlib $objects -lgcc
 
 # Create bootable image
 mkdir -p build/iso/boot/grub

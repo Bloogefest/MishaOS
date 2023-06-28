@@ -30,6 +30,12 @@ i686-elf-gcc -T linker.ld $objects -o build/bootloader.bin -nostdlib
 
 mkdir -p build/contents
 cp -f build/bootloader.bin build/contents/bootloader.bin
-cp -f ../build/mishaos.bin build/contents/kernel.elf
-cp -f ../build/initrd.img build/contents/initrd.img
-mkisofs -V MISHABOOT -o ../mishaos_lgbt_boot.iso -b bootloader.bin -no-emul-boot build/contents/
+cp -f ../../build/mishaos.bin build/contents/kernel.elf
+cp -f ../../build/initrd.img build/contents/initrd.img
+mkisofs -V MISHABOOT -o ../../mishaos_lgbt_boot.iso -b bootloader.bin -no-emul-boot build/contents/
+
+printf "%%define READ_DISK\n" >> build/constants.asm
+nasm -felf bootloader.asm -o build/boot.bin
+i686-elf-gcc -T linker.ld $objects -o build/bootloader.bin -nostdlib
+mkisofs -V MISHABOOT -o ../../mishaos_lgbt_boot.raw -b bootloader.bin -no-emul-boot build/contents/
+dd if=build/bootloader.bin of=../../mishaos_lgbt_boot.raw conv=notrunc

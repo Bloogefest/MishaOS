@@ -1,11 +1,10 @@
 #include "dns.h"
 
-#include "net.h"
 #include "buf.h"
 #include "port.h"
 #include "in.h"
 #include "udp.h"
-#include "../heap.h"
+#include "../gpd.h"
 #include "../terminal.h"
 #include "../stdlib.h"
 #include "../string.h"
@@ -99,7 +98,7 @@ void dns_recv(net_intf_t* intf, const net_buf_t* buf) {
     }
 
     entry->callback(entry->context, entry->host, buf);
-    free(entry);
+    pfa_free_page(&pfa, entry);
 }
 
 void dns_query_host(const char* host, uint32_t id, void* ctx, dns_callback_t callback) {
@@ -150,7 +149,7 @@ void dns_query_host(const char* host, uint32_t id, void* ctx, dns_callback_t cal
     dns_dump(packet);
 
     if (callback) {
-        dns_entry_t* entry = malloc(sizeof(dns_entry_t));
+        dns_entry_t* entry = pfa_request_page(&pfa);
         memset(entry, 0, sizeof(dns_entry_t));
         entry->host = host;
         entry->id = id;

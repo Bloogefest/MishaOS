@@ -140,6 +140,7 @@ void f3f5_tcp_connect(void* ctx, const char* host, const net_buf_t* buf) {
 }
 
 void f3f5_connect() {
+    return;
     mc_init();
 
     mc_status_handlers[0x00] = f3f5_handle_status_response;

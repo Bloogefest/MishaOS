@@ -29,7 +29,9 @@ stage1_entry:
     mov cx, (bootloader_size - (stage2 - stage1)) / 512
     mov bx, stage2
     xor dx, dx
-    ; call read_disk16 ; Uncomment if booting from hard disk
+%ifdef READ_DISK
+    call read_disk16
+%endif
     mov si, stage1_done
     call println16
     jmp stage2_entry

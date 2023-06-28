@@ -138,10 +138,10 @@ void bios_video_mode() {
             }
 
             match(1024, 768, 10);
-//            match(1280, 720, 50);
-//            match(1280, 800, 60);
-//            match(1440, 900, 75);
-//            match(1920, 1080, 100);
+            match(1280, 720, 50);
+            match(1280, 800, 60);
+            match(1440, 900, 75);
+            match(1920, 1080, 100);
         } else if (vbe_info_bpp == 24) {
             if (!match_score) {
                 best_match = *i;
@@ -149,10 +149,10 @@ void bios_video_mode() {
             }
 
             match(1024, 768, 3);
-//            match(1280, 720, 4);
-//            match(1280, 800, 5);
-//            match(1440, 900, 6);
-//            match(1920, 1080, 7);
+            match(1280, 720, 4);
+            match(1280, 800, 5);
+            match(1440, 900, 6);
+            match(1920, 1080, 7);
         }
     }
 
@@ -284,7 +284,8 @@ void _boot(int smap_entry_count) {
 
     // TODO: Check multiboot header
 
-    clear_screen();
+    protected_println("Creating multiboot structures...");
+
     bios_video_mode();
 
     final_offset = (final_offset & ~0xFFF) + ((final_offset & 0xFFF) ? 0x1000 : 0);
@@ -317,6 +318,8 @@ void _boot(int smap_entry_count) {
     multiboot_memory_map_t* mmap = (void*) final_offset;
     multiboot_header->mmap_addr = (uintptr_t) mmap;
 
+    protected_println("");
+    protected_println("Memory Map:");
     for (int i = 0; i < smap_entry_count; i++) {
         memset(mmap, 0, sizeof(multiboot_memory_map_t));
         mmap->size = sizeof(uint64_t) * 2 + sizeof(uintptr_t);
@@ -324,6 +327,17 @@ void _boot(int smap_entry_count) {
         mmap->len = smap_entries[i].length1;
         mmap->type = smap_entries[i].type;
         ++mmap;
+
+        char buf[20];
+        protected_print("Base: ");
+        utoa(smap_entries[i].base1, utoa(smap_entries[i].base2, buf, 16), 16);
+        protected_print(buf);
+        protected_print(" Length: ");
+        utoa(smap_entries[i].length1, utoa(smap_entries[i].length2, buf, 16), 16);
+        protected_print(buf);
+        protected_print(" Type: ");
+        itoa(smap_entries[i].type, buf, 10);
+        protected_println(buf);
     }
 
     multiboot_header->mmap_length = (uintptr_t) mmap - multiboot_header->mmap_addr;
@@ -332,6 +346,12 @@ void _boot(int smap_entry_count) {
     data[0] = MULTIBOOT_EAX_MAGIC;
     data[1] = (uint32_t) multiboot_header;
     data[2] = entry;
+
+    protected_println("");
+    protected_println("Ready.");
+
+    clear_screen();
+
     __asm__ __volatile__("mov %%cr0, %%eax\n"
                          "and $0x7FFEFFFF, %%eax\n"
                          "mov %%eax, %%cr0\n"

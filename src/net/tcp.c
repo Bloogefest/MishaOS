@@ -8,7 +8,7 @@
 #include "in.h"
 #include "../pit.h"
 #include "../rtc.h"
-#include "../heap.h"
+#include "../gpd.h"
 #include "../stdlib.h"
 #include "../string.h"
 #include "../terminal.h"
@@ -142,7 +142,7 @@ static tcp_conn_t* tcp_alloc() {
         conn = free_conn_list;
         free_conn_list = free_conn_list->next;
     } else {
-        conn = malloc(sizeof(tcp_conn_t));
+        conn = pfa_request_page(&pfa);
     }
 
     memset(conn, 0, sizeof(tcp_conn_t));

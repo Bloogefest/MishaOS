@@ -109,7 +109,7 @@ void rtl8139_poll(net_intf_t* intf) {
     for (net_buf_t* current = device.rx_bufs;;) {
         net_buf_t* next = current->link;
         device.rx_bufs = next;
-        free(current);
+        net_free_buf(current);
         if (current == last) {
             break;
         }
