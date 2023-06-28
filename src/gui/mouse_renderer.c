@@ -37,7 +37,13 @@ void mouse_render_cursor() {
                 continue;
             }
 
-            *((uint32_t*) linear_framebuffer + mouse_x + x + (mouse_y + y) * lfb_width) = color;
+            uint32_t screen_x = mouse_x + x;
+            uint32_t screen_y = mouse_y + y;
+            if (screen_x >= lfb_width || screen_y >= lfb_height) {
+                continue;
+            }
+
+            *((uint32_t*) linear_framebuffer + screen_x + screen_y * lfb_width) = color;
         }
     }
 }
