@@ -1,6 +1,6 @@
 #include "ide.h"
 #include "io.h"
-#include "terminal.h"
+#include "kprintf.h"
 #include "stdlib.h"
 
 uint8_t ide_buf[2048] = {0};
@@ -187,15 +187,9 @@ void ide_init(uint32_t bar0, uint32_t bar1, uint32_t bar2, uint32_t bar3, uint32
 
     for (uint8_t i = 0; i < 4; i++) {
         if (ide_devices[i].reserved == 1) {
-            char num[11];
-            terminal_putstring("Found ");
-            terminal_putstring((const char*[]){"ATA", "ATAPI"}[ide_devices[i].type]);
-            terminal_putstring(" drive - ");
-            itoa(ide_devices[i].size / 1024 / 2, num, 10);
-            terminal_putstring(num);
-            terminal_putstring("MB - ");
-            terminal_putstring(ide_devices[i].model);
-            terminal_putchar('\n');
+            kprintf("Found %s drive - %lu MB - %s\n",
+                    (const char*[]){"ATA", "ATAPI"}[ide_devices[i].type],
+                    ide_devices[i].size / 1024 / 2, ide_devices[i].model);
         }
     }
 }

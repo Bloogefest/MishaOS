@@ -1,5 +1,5 @@
 #include "isrs.h"
-#include "terminal.h"
+#include "kprintf.h"
 #include "panic.h"
 #include "io.h"
 #include "pic.h"
@@ -70,7 +70,7 @@ void keyboard_isr(struct interrupt_frame* frame) {
     uint8_t scancode = inb(0x60);
     switch (scancode) {
         case 0x1C: { // Enter pressed
-            terminal_putchar('\n');
+            putchar('\n');
             break;
         }
 
@@ -101,7 +101,7 @@ void keyboard_isr(struct interrupt_frame* frame) {
 
             terminal_set_column(column);
             terminal_set_row(row);
-            terminal_putchar(' ');
+            putchar(' ');
             terminal_set_column(column);
             break;
         }
@@ -114,7 +114,7 @@ void keyboard_isr(struct interrupt_frame* frame) {
             char c = SCAN_CODE_SET[scancode];
             uint8_t uppercase = CAPS_LOCK ^ SHIFT;
             if (c) {
-                terminal_putchar(c - uppercase * 32);
+                putchar(c - uppercase * 32);
             }
 
             break;

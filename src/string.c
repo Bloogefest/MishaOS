@@ -9,6 +9,21 @@ size_t strlen(const char* str) {
     return len;
 }
 
+char* strcat(char* dst, const char* src) {
+    strcpy(dst + strlen(dst), src);
+    return dst;
+}
+
+char* strcpy(char* dst, const char* src) {
+    char* ptr = dst;
+    while (*src != 0) {
+        *dst++ = *src++;
+    }
+
+    *dst = 0;
+    return ptr;
+}
+
 void* memset(void* ptr, int value, size_t size) {
     uint8_t* data = (uint8_t*) ptr;
     for (size_t i = 0; i < size; i++) {

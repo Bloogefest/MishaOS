@@ -2,7 +2,7 @@
 
 #include "mcprotocol.h"
 #include "../net/dns.h"
-#include "../terminal.h"
+#include "../kprintf.h"
 #include "../string.h"
 #include "../stdlib.h"
 #include "../pit.h"
@@ -19,7 +19,7 @@ void f3f5_on_state(tcp_conn_t* conn, uint32_t old, uint32_t new);
 
 void f3f5_handle_status_response(tcp_conn_t* conn, void* data) {
     mc_status_response_t* packet = (mc_status_response_t*) data;
-    terminal_putchar('\n');
+    putchar('\n');
     char* description = strstr(packet->json, "\"text\"") + 6;
     while (*description++ != '"');
     while (*description != '"') {
@@ -32,15 +32,15 @@ void f3f5_handle_status_response(tcp_conn_t* conn, void* data) {
             ++description;
             if (*description == 'n') {
                 ++description;
-                terminal_putchar('\n');
+                putchar('\n');
                 continue;
             }
         }
 
-        terminal_putchar(*description++);
+        putchar(*description++);
     }
 
-    terminal_putstring("\n\n");
+    puts("\n");
     mc_send_ping_request(conn, pit_get_ticks());
 }
 
@@ -56,7 +56,7 @@ void f3f5_handle_ping_response(tcp_conn_t* conn, void* data) {
 
 void f3f5_handle_set_compression(tcp_conn_t* conn, void* data) {
     mc_set_compression_t* packet = (mc_set_compression_t*) data;
-    terminal_putstring("Compression enabled.\n");
+    puts("Compression enabled.");
     mc_set_compression(packet->threshold);
 }
 
@@ -65,15 +65,11 @@ void f3f5_on_data(tcp_conn_t* conn, const uint8_t* data, uint32_t len) {
 }
 
 void f3f5_on_error(tcp_conn_t* conn, uint32_t error) {
-    char num[20];
-    terminal_putstring("Error occurred in the connection: ");
-    itoa(error, num, 10);
-    terminal_putstring(num);
-    terminal_putstring("\n");
+    kprintf("Error occurred in the connection: %ld\n", error);
 }
 
 void f3f5_on_ping_connect(tcp_conn_t* conn) {
-    terminal_putstring("Connected to the pomoyka F3F5 (ping).\n");
+    puts("Connected to the pomoyka F3F5 (ping).");
     mc_packet_decoders = mc_status_decoders;
     mc_packet_handlers = mc_status_handlers;
     mc_send_handshake(conn, 762, HOST, PORT, 1);
@@ -81,16 +77,14 @@ void f3f5_on_ping_connect(tcp_conn_t* conn) {
 }
 
 void f3f5_on_login_connect(tcp_conn_t* conn) {
-    terminal_putstring("Connected to the pomoyka F3F5 (login).\n");
+    puts("Connected to the pomoyka F3F5 (login).");
     mc_packet_decoders = mc_login_decoders;
     mc_packet_handlers = mc_login_handlers;
     mc_send_handshake(conn, 762, HOST, PORT, 2);
     char name[] = {'M', 'i', 's', 'h', 'a', 'O', 'S', '_', '0', '0', '0', 0};
     itoa(pit_get_ticks() % 1000, name + 8, 10);
     mc_send_login_start(conn, name);
-    terminal_putstring("Logging in as ");
-    terminal_putstring(name);
-    terminal_putchar('\n');
+    kprintf("Logging in as %s\n", name);
 }
 
 void f3f5_on_state(tcp_conn_t* conn, uint32_t old, uint32_t new) {
@@ -108,27 +102,17 @@ void f3f5_on_state(tcp_conn_t* conn, uint32_t old, uint32_t new) {
             "TIME-WAIT"
     };
 
-    terminal_putstring("[Pomoyka F3F5] TCP state changed: ");
-    terminal_putstring(TCP_STATES[old]);
-    terminal_putstring(" -> ");
-    terminal_putstring(TCP_STATES[new]);
-    terminal_putstring("\n");
+    kprintf("[Pomoyka F3F5] TCP state changed: %s -> %s\n", TCP_STATES[old], TCP_STATES[new]);
 }
 
 void f3f5_tcp_connect(void* ctx, const char* host, const net_buf_t* buf) {
     if (!dns_get_ip4_a(&addr, buf)) {
-        terminal_putstring("Unable to find IP for host ");
-        terminal_putstring(host);
-        terminal_putchar('\n');
+        kprintf("Unable to find IP for host %s\n", host);
         return;
     } else {
         char str[16];
-        terminal_putstring("Found IP for host ");
-        terminal_putstring(host);
-        terminal_putstring(": ");
         ip4toa(&addr, str);
-        terminal_putstring(str);
-        terminal_putchar('\n');
+        kprintf("Found IP for host %s: %s\n", host, str);
     }
 
     tcp_conn_t* conn = tcp_new_conn();
@@ -148,6 +132,6 @@ void f3f5_connect() {
 
     mc_login_handlers[0x03] = f3f5_handle_set_compression;
 
-    terminal_putstring("Connecting to the pomoyka F3F5...\n");
+    puts("Connecting to the pomoyka F3F5...");
     dns_query_host(HOST, 1, 0, f3f5_tcp_connect);
 }

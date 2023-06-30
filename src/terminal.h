@@ -27,3 +27,6 @@ void terminal_put(const char* str, size_t size);
 void terminal_putstring(const char* str);
 size_t terminal_get_columns();
 size_t terminal_get_rows();
+
+int putchar(int c);
+int puts(const char* str);

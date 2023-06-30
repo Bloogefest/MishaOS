@@ -4,9 +4,9 @@
 void panic(const char* msg) {
     terminal_init();
 //    terminal_clear_terminal();
-    terminal_putstring("!! KERNEL PANIC !!\n");
-    terminal_putstring(msg);
-    terminal_putstring("\n!! FISH IS NOT OPTIMIZED !!\n");
+    puts("!! KERNEL PANIC !!");
+    puts(msg);
+    puts("!! FISH IS NOT OPTIMIZED !!");
 
     for (;;) {
         asm("hlt");

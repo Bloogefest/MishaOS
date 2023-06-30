@@ -8,7 +8,7 @@
 #include "in.h"
 #include "udp.h"
 #include "port.h"
-#include "../terminal.h"
+#include "../kprintf.h"
 #include "../string.h"
 #include "../stdlib.h"
 
@@ -134,11 +134,7 @@ static uint8_t dhcp_parse_options(dhcp_options_t* opt, const net_buf_t* packet) 
                     break;
 
                 default:
-                    terminal_putstring("[DHCP] unknown option (");
-                    char num[20];
-                    itoa(type, num, 10);
-                    terminal_putstring(num);
-                    terminal_putstring(")\n");
+                    kprintf("[DHCP] unknown option (%d)\n", type);
                     break;
             }
 
@@ -179,9 +175,7 @@ static void dhcp_request(net_intf_t* intf, const dhcp_header_t* header, const dh
 
     char str[16];
     ip4toa(requested_ip_addr, str);
-    terminal_putstring("DHCP requested lease for ");
-    terminal_putstring(str);
-    terminal_putchar('\n');
+    kprintf("DHCP requested lease for %s\n", str);
 
     net_buf_t* packet = net_alloc_buf();
     uint8_t* ptr = dhcp_build_header(packet, xid, &intf->eth_addr, DHCP_REQUEST);
@@ -268,39 +262,31 @@ void dhcp_recv(net_intf_t* intf, const net_buf_t* packet) {
 
     switch (opt.message_type) {
         case DHCP_OFFER: {
-            terminal_putstring("DHCP offer received for ");
-            terminal_putstring(ip_str);
-            terminal_putchar('\n');
+            kprintf("DHCP offer received for %s\n", ip_str);
             dhcp_request(intf, header, &opt);
             break;
         }
 
         case DHCP_ACK: {
-            terminal_putstring("DHCP ack received for ");
-            terminal_putstring(ip_str);
-            terminal_putchar('\n');
+            kprintf("DHCP ack received for %s\n", ip_str);
             dhcp_ack(intf, header, &opt);
             break;
         }
 
         case DHCP_NAK: {
-            terminal_putstring("DHCP nak received for ");
-            terminal_putstring(ip_str);
-            terminal_putchar('\n');
+            kprintf("DHCP nak received for %s\n", ip_str);
             break;
         }
 
         default: {
-            terminal_putstring("DHCP message unhandled\n");
+            puts("DHCP message unhandled");
             break;
         }
     }
 }
 
 void dhcp_discover(net_intf_t* intf) {
-    terminal_putstring("DHCP discovery for ");
-    terminal_putstring(intf->name);
-    terminal_putstring(":\n");
+    kprintf("DHCP discovery for %s\n", intf->name);
 
     net_buf_t* packet = net_alloc_buf();
 
@@ -332,50 +318,22 @@ void dhcp_dump(const net_buf_t* packet) {
     const dhcp_header_t* header = (const dhcp_header_t*) packet->start;
 
     char str[34];
-    terminal_putstring("   DHCP: opcode=");
-    itoa(header->opcode, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" htype=");
-    itoa(header->htype, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" hlen=");
-    itoa(header->hlen, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" hopCount=");
-    itoa(header->hop_count, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" xid=");
-    itoa(net_swap32(header->xid), str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" secs=");
-    itoa(net_swap32(header->sec_count), str, 10);
-    terminal_putstring(str);
-    terminal_putstring("\n   DHCP: flags=");
-    itoa(net_swap16(header->flags), str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" len=");
-    itoa(packet->end - packet->start, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" client=");
+    kprintf("   DHCP: opcode=%d htype=%d hlen=%d hopCount=%d xid=%ld secs=%d\n",
+            header->opcode, header->htype, header->hlen, header->hop_count,
+            net_swap32(header->xid), net_swap16(header->sec_count));
     ip4toa(&header->client_ip_addr, str);
-    terminal_putstring(str);
-    terminal_putstring(" your=");
+    kprintf("   DHCP: flags=%d len=%lu client=%s",
+            net_swap16(header->flags), packet->end - packet->start, str);
     ip4toa(&header->your_ip_addr, str);
-    terminal_putstring(str);
-    terminal_putstring(" server=");
+    kprintf(" your=%s", str);
     ip4toa(&header->server_ip_addr, str);
-    terminal_putstring(str);
-    terminal_putstring(" gateway=");
+    kprintf(" server=%s", str);
     ip4toa(&header->gateway_ip_addr, str);
-    terminal_putstring(str);
-    terminal_putstring(" eth=");
+    kprintf(" gateway=%s", str);
     ethtoa(&header->client_eth_addr, str);
-    terminal_putstring(str);
-    terminal_putstring("\n   DHCP: serverName=");
-    terminal_putstring(header->server_name);
-    terminal_putstring(" bootFilename=");
-    terminal_putstring(header->boot_filename);
-    terminal_putchar('\n');
+    kprintf(" eth=%s\n", str);
+    kprintf("   DHCP: serverName=%s bootFilename=%s\n",
+            header->server_name, header->boot_filename);
 
     dhcp_options_t opt;
     if (!dhcp_parse_options(&opt, packet)) {
@@ -383,44 +341,30 @@ void dhcp_dump(const net_buf_t* packet) {
     }
 
     if (opt.message_type) {
-        terminal_putstring("   DHCP: message type: ");
-        itoa(opt.message_type, str, 10);
-        terminal_putstring(str);
-        terminal_putchar('\n');
+        kprintf("   DHCP: message type: %ld\n", opt.message_type);
     }
 
     if (opt.subnet_mask) {
-        terminal_putstring("   DHCP: subnetMask: ");
         ip4toa(opt.subnet_mask, str);
-        terminal_putstring(str);
-        terminal_putchar('\n');
+        kprintf("   DHCP: subnetMask: %s\n", str);
     }
 
     for (const ipv4_addr_t* addr = opt.router_list; addr != opt.router_end; ++addr) {
-        terminal_putstring("   DHCP: router: ");
         ip4toa(addr, str);
-        terminal_putstring(str);
-        terminal_putchar('\n');
+        kprintf("   DHCP: router: %s\n", str);
     }
 
     if (opt.requested_ip_addr) {
-        terminal_putstring("   DHCP: requested ip: ");
         ip4toa(opt.requested_ip_addr, str);
-        terminal_putstring(str);
-        terminal_putchar('\n');
+        kprintf("   DHCP: requested ip: %s\n", str);
     }
 
     if (opt.server_id) {
-        terminal_putstring("   DHCP: server id: ");
         ip4toa(opt.server_id, str);
-        terminal_putstring(str);
-        terminal_putchar('\n');
+        kprintf("   DHCP: server id: %s\n", str);
     }
 
     for (const uint8_t* p = opt.parameter_list; p != opt.parameter_end; ++p) {
-        terminal_putstring("   DHCP: parameter request: ");
-        itoa(*p, str, 10);
-        terminal_putstring(str);
-        terminal_putchar('\n');
+        kprintf("   DHCP: parameter request: %d\n", *p);
     }
 }

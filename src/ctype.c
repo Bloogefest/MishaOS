@@ -7,3 +7,7 @@ int toupper(int c) {
 
     return c;
 }
+
+int isdigit(char ch) {
+    return ch >= '0' && ch <= '9';
+}

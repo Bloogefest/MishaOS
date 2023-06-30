@@ -1,9 +1,8 @@
 #include "arp.h"
 
-#include "net.h"
 #include "in.h"
 #include "eth.h"
-#include "../terminal.h"
+#include "../kprintf.h"
 #include "../stdlib.h"
 #include "../string.h"
 
@@ -42,44 +41,26 @@ static void arp_dump(const net_buf_t* packet) {
     uint8_t plen = header->plen;
     uint16_t op = net_swap16(header->op);
 
-    char str[20];
-    terminal_putstring("   ARP: htype=0x");
-    itoa(htype, str, 16);
-    terminal_putstring(str);
-    terminal_putstring(" ptype=0x");
-    itoa(ptype, str, 16);
-    terminal_putstring(str);
-    terminal_putstring(" hlen=");
-    itoa(hlen, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" plen");
-    itoa(plen, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" op=");
-    itoa(op, str, 10);
-    terminal_putstring(str);
+    kprintf("   ARP: htype=0x%x ptype=0x%x hlen=%d plen=%d op=%d", htype, ptype, hlen, plen, op);
     if (htype == ARP_HTYPE_ETH && ptype == ET_IPV4 && packet->start + 28 <= packet->end) {
         const eth_addr_t* sha = (const eth_addr_t*) (data + 8);
         const ipv4_addr_t* spa = (const ipv4_addr_t*) (data + 14);
         const eth_addr_t* tha = (const eth_addr_t*) (data + 18);
         const ipv4_addr_t* tpa = (const ipv4_addr_t*) (data + 24);
 
-        terminal_putstring(" [");
+        char str[20];
+
         ethtoa(sha, str);
-        terminal_putstring(str);
-        terminal_putstring(" spa=");
+        kprintf(" [sha=%s", str);
         ip4toa(spa, str);
-        terminal_putstring(str);
-        terminal_putstring("] [");
+        kprintf(" spa=%s]", str);
         ethtoa(tha, str);
-        terminal_putstring(str);
-        terminal_putstring(" tpa=");
+        kprintf(" [tha=%s", str);
         ip4toa(tpa, str);
-        terminal_putstring(str);
-        terminal_putchar(']');
+        kprintf(" tpa=%s]", str);
     }
 
-    terminal_putchar('\n');
+    putchar('\n');
 }
 
 static void arp_send(net_intf_t* intf, uint32_t op, const eth_addr_t* tha, const ipv4_addr_t* tpa) {
@@ -201,7 +182,7 @@ void arp_recv(net_intf_t* intf, net_buf_t* packet) {
         merge = 1;
 
         if (entry->packet) {
-            terminal_putstring("[ARP] Resending packet\n");
+            puts("[ARP] Resending packet");
             eth_intf_send(entry->intf, spa, entry->ethertype, entry->packet);
             entry->intf = 0;
             entry->ethertype = 0;

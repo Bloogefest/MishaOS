@@ -3,7 +3,7 @@
 #include "../heap.h"
 #include "../stdlib.h"
 #include "../string.h"
-#include "../terminal.h"
+#include "../kprintf.h"
 
 #define RX_BUF_SIZE 16384
 
@@ -29,28 +29,20 @@ static uint32_t compression;
 void mc_dump(const net_buf_t* b) {
     uint8_t* ptr = b->start;
 
-    char str[20];
-    terminal_putstring("   MC: length=");
-    itoa(mc_vardecode(ptr, &ptr), str, 10);
-    terminal_putstring(str);
+    kprintf("   MC: length=%ld", mc_vardecode(ptr, &ptr));
 
     if (compression) {
         uint32_t uncompressed = mc_vardecode(ptr, &ptr);
-        terminal_putstring(" uncompressed=");
+        kprintf(" uncompressed=");
         if (uncompressed) {
-            itoa(uncompressed, str, 10);
-            terminal_putstring(str);
-            terminal_putchar('\n');
+            kprintf("%ld", uncompressed);
             return;
         } else {
-            terminal_putstring("[not compressed]");
+            kprintf("[not compressed]");
         }
     }
 
-    terminal_putstring(" id=0x");
-    itoa(mc_vardecode(ptr, &ptr), str, 16);
-    terminal_putstring(str);
-    terminal_putchar('\n');
+    kprintf(" id=0x%lx\n", mc_vardecode(ptr, &ptr));
 }
 
 uint8_t mc_varlen(uint32_t value) {
@@ -94,7 +86,7 @@ uint32_t mc_vardecode(const uint8_t* buf, uint8_t** dst) {
 
         position += 7;
         if (position >= 32) {
-            terminal_putstring("mc_vardecode: overflow\n");
+            puts("mc_vardecode: overflow");
             break;
         }
     }
@@ -144,7 +136,7 @@ void mc_read_packet(tcp_conn_t* conn, const uint8_t* buf, uint32_t len) {
         uint32_t packet_len = mc_vardecode(rx_buf.start, &rx_buf.start);
         packet_len += mc_varlen(packet_len);
         if (packet_len != rx_len) {
-            terminal_putstring("Invalid packet size.\n");
+            puts("Invalid packet size.");
         } else {
             uint32_t id = mc_vardecode(rx_buf.start, &rx_buf.start);
             id %= 0xFF;

@@ -1,6 +1,6 @@
 #include "pci.h"
 #include "stdlib.h"
-#include "terminal.h"
+#include "kprintf.h"
 #include "io.h"
 #include "driver.h"
 
@@ -86,24 +86,9 @@ void pci_visit(uint32_t bus, uint32_t dev, uint32_t func) {
     info.subclass = pci_read8(id, PCI_CONFIG_SUBCLASS);
     info.class_code = pci_read8(id, PCI_CONFIG_CLASS_CODE);
 
-    char buf[11];
-    itoa(bus, buf, 16);
-    terminal_putstring(buf);
-    terminal_putchar(':');
-    itoa(dev, buf, 16);
-    terminal_putstring(buf);
-    terminal_putchar(':');
-    itoa(func, buf, 10);
-    terminal_putstring(buf);
-    terminal_putstring(" 0x");
-    itoa(info.vendor_id, buf, 16);
-    terminal_putstring(buf);
-    terminal_putstring("/0x");
-    itoa(info.device_id, buf, 16);
-    terminal_putstring(buf);
-    terminal_putstring(": ");
-    terminal_putstring(pci_class_name(info.class_code, info.subclass, info.prog_intf));
-    terminal_putchar('\n');
+    kprintf("%02lx:%02lx:%ld 0x%04x/0x%04x: %s\n",
+            bus, dev, func, info.vendor_id, info.device_id,
+            pci_class_name(info.class_code, info.subclass, info.prog_intf));
 
     if (info.class_code == 0xFF || (info.subclass & 0xFF) == 0x80) {
         return;

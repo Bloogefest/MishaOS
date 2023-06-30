@@ -91,7 +91,7 @@ void rtc_set_time(const date_time_t* date) {
     uint8_t week_day = date->week_day + 1;
 
     if (sec >= 60 || min >= 60 || hour >= 24 || day > 31 || month > 12 || year >= 100 || week_day > 7) {
-        terminal_putstring("rtc_set_time: invalid date\n");
+        puts("rtc_set_time: invalid date");
         return;
     }
 

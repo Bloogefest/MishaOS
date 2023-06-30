@@ -5,7 +5,7 @@
 #include "port.h"
 #include "in.h"
 #include "udp.h"
-#include "../terminal.h"
+#include "../kprintf.h"
 #include "../stdlib.h"
 #include "../rtc.h"
 
@@ -43,9 +43,7 @@ void ntp_recv(net_intf_t* intf, const net_buf_t* packet) {
 
     char str[TIME_STRING_SIZE];
     format_time(str, &date);
-    terminal_putstring("Setting time to ");
-    terminal_putstring(str);
-    terminal_putchar('\n');
+    kprintf("Setting time to %s\n", str);
 
     rtc_set_time(&date);
 }
@@ -85,42 +83,11 @@ void ntp_dump(const net_buf_t* packet) {
     ntp_header_t* header = (ntp_header_t*) packet->start;
     abs_time time = (net_swap64(header->send_timestamp) >> 32) - UNIX_EPOCH;
 
-    char str[20];
-    terminal_putstring("   NTP: mode=");
-    itoa(header->mode, str, 16);
-    terminal_putstring(str);
-    terminal_putstring(" stratum=");
-    itoa(header->stratum, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" poll=");
-    itoa(header->poll, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" precision=");
-    itoa(header->precision, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" rootDelay=");
-    itoa(header->root_delay, str, 16);
-    terminal_putstring(str);
-    terminal_putstring(" rootDispersion=");
-    itoa(header->root_dispersion, str, 16);
-    terminal_putstring(str);
-    terminal_putstring(" refId=");
-    itoa(header->ref_id, str, 16);
-    terminal_putstring(str);
-    terminal_putstring("\n   NTP: refTimestamp=");
-    itoa(header->ref_timestamp, str, 16);
-    terminal_putstring(str);
-    terminal_putstring(" origTimestamp=");
-    itoa(header->orig_timestamp, str, 16);
-    terminal_putstring(str);
-    terminal_putstring(" recvTimestamp=");
-    itoa(header->recv_timestamp, str, 16);
-    terminal_putstring(str);
-    terminal_putstring("\n   NTP: sendTimestamp=");
-    itoa(header->send_timestamp, str, 16);
-    terminal_putstring(str);
-    terminal_putstring(" unixEpoch=");
-    itoa(time, str, 10);
-    terminal_putstring(str);
-    terminal_putchar('\n');
+    kprintf("   NTP: mode=%02x stratum=%d poll=%d precision=%d rootDelay=%08lx rootDispersion=%08lx, refId=%08lx\n",
+            header->mode, header->stratum, header->poll, header->precision, net_swap32(header->root_delay),
+            net_swap32(header->root_dispersion), net_swap32(header->ref_id));
+    kprintf("   NTP: refTimestamp=%016llx origTimestamp=%016llx recvTimestamp=%016llx\n",
+            net_swap64(header->ref_timestamp), net_swap64(header->orig_timestamp),
+            net_swap64(header->recv_timestamp));
+    kprintf("   NTP: sendTimestamp=%016llx unixEpoch=%lu\n", net_swap64(header->send_timestamp), time);
 }

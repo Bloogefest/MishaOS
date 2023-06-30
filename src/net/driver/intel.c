@@ -279,7 +279,7 @@ void intel_net_driver_init(pci_device_info_t* info, uint32_t bus, uint32_t dev, 
         return;
     }
 
-    terminal_putstring("Initializing Intel Gigabit Ethernet...\n");
+    puts("Initializing Intel Gigabit Ethernet...");
 
     uint32_t id = pci_get_id(bus, dev, func);
 
@@ -302,15 +302,13 @@ void intel_net_driver_init(pci_device_info_t* info, uint32_t bus, uint32_t dev, 
     pci_write32(id, PCI_CONFIG_COMMAND, pci_status);
 
     if (!read_mac_address()) {
-        terminal_putstring("Unable to read MAC address.\n");
+        puts("Unable to read MAC address.");
         return;
     }
 
     char str[20];
     ethtoa(&device.mac_address, str);
-    terminal_putstring("MAC address: ");
-    terminal_putstring(str);
-    terminal_putchar('\n');
+    kprintf("MAC address: %s\n", str);
 
     eth_intel_write_command(REG_CTRL, eth_intel_read_command(REG_CTRL) | ECTRL_SLU);
 
