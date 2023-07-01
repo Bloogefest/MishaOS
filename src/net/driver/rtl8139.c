@@ -7,8 +7,7 @@
 #include "../../heap.h"
 #include "../../string.h"
 #include "../../paging.h"
-#include "../../terminal.h"
-#include "../../stdlib.h"
+#include "../../kprintf.h"
 
 typedef struct rtl8139_s {
     eth_addr_t mac_address;

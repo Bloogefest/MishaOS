@@ -8,7 +8,7 @@
 #include "../../isrs.h"
 #include "../../paging.h"
 #include "../../string.h"
-#include "../../terminal.h"
+#include "../../kprintf.h"
 
 #define RX_DESC_COUNT 32
 #define TX_DESC_COUNT 8

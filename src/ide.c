@@ -176,8 +176,8 @@ void ide_init(uint32_t bar0, uint32_t bar1, uint32_t bar2, uint32_t bar3, uint32
             }
 
             for (uint8_t k = 0; k < 40; k += 2) {
-                ide_devices[count].model[k] = ide_buf[ATA_IDENT_MODEL + k + 1];
-                ide_devices[count].model[k + 1] = ide_buf[ATA_IDENT_MODEL + k];
+                ide_devices[count].model[k] = (char) ide_buf[ATA_IDENT_MODEL + k + 1];
+                ide_devices[count].model[k + 1] = (char) ide_buf[ATA_IDENT_MODEL + k];
             }
 
             ide_devices[count].model[40] = 0;
@@ -187,9 +187,9 @@ void ide_init(uint32_t bar0, uint32_t bar1, uint32_t bar2, uint32_t bar3, uint32
 
     for (uint8_t i = 0; i < 4; i++) {
         if (ide_devices[i].reserved == 1) {
-            kprintf("Found %s drive - %lu MB - %s\n",
-                    (const char*[]){"ATA", "ATAPI"}[ide_devices[i].type],
-                    ide_devices[i].size / 1024 / 2, ide_devices[i].model);
+//            kprintf("Found %s drive - %lu MB - %s\n",
+//                    (const char*[]){"ATA", "ATAPI"}[ide_devices[i].type],
+//                    ide_devices[i].size / 1024 / 2, ide_devices[i].model);
         }
     }
 }

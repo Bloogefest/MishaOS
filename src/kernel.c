@@ -32,7 +32,6 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     terminal = vga_terminal;
     terminal_init();
     puts("Optimizing fish...");
-    char num[20];
 
     uint32_t cursor_buffer[CURSOR_WIDTH * CURSOR_HEIGHT + 2];
 
@@ -108,27 +107,28 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     lfb_copy_from_vga();
 
     rsdp_t* rsdp = rsdp_locate();
-    if (!rsdp) {
-        panic("RSDP not found");
-    }
-
-    char rsdp_string[7];
-    memcpy(rsdp_string, &rsdp->oem_id, 6);
-    rsdp_string[6] = 0;
-    kprintf("Found RSDP [%s]", rsdp_string);
-    if (rsdp->revision == 0) {
-        puts(" version 1.0");
-        acpi_parse_rsdt((sdt_header_t*) rsdp->rsdt_address);
-    } else if (rsdp->revision == 2) {
-        puts(" version 2.0");
-        rsdp2_t* rsdp2 = (rsdp2_t*) rsdp;
-        if (rsdp2->xsdt_address) {
-            acpi_parse_xsdt((sdt_header_t*) rsdp2->xsdt_address);
-        } else {
+    if (rsdp) {
+        char rsdp_string[7];
+        memcpy(rsdp_string, &rsdp->oem_id, 6);
+        rsdp_string[6] = 0;
+        kprintf("Found RSDP [%s]", rsdp_string);
+        if (rsdp->revision == 0) {
+            puts(" version 1.0");
             acpi_parse_rsdt((sdt_header_t*) rsdp->rsdt_address);
+        } else if (rsdp->revision == 2) {
+            puts(" version 2.0");
+            rsdp2_t* rsdp2 = (rsdp2_t*) rsdp;
+            if (rsdp2->xsdt_address) {
+                acpi_parse_xsdt((sdt_header_t*) rsdp2->xsdt_address);
+            } else {
+                acpi_parse_rsdt((sdt_header_t*) rsdp->rsdt_address);
+            }
+        } else {
+            panic("Unsupported ACPI version");
         }
     } else {
-        panic("Unsupported ACPI version");
+        // TODO: Use EFI to find RSDP
+        // panic("RSDP not found");
     }
 
     gdt_entry_t gdt[6];
@@ -177,8 +177,8 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     enable_paging(&page_directory);
     memcpy(linear_framebuffer, double_framebuffer, lfb_width * lfb_height * 4);
 
-    puts("Initializing heap...");
-    heap_init((void*) (2147483648U & ~0xFFFU), 0x1000); // TODO: 64-bit kernel for larger address space
+    // puts("Initializing heap..."); // TODO: Rewrite heap
+    // heap_init((void*) (2147483648U & ~0xFFFU), 0x10); // TODO: 64-bit kernel for larger address space
 
     puts("Remapping PIC...");
     pic_remap(0x20, 0x28);
@@ -199,7 +199,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
 
     puts("Enabling IRQs...");
     pic_irq_set_master_mask(0b11111000);
-    pic_irq_set_slave_mask(0b11100001);
+    pic_irq_set_slave_mask(0b11101111);
 
     asm("sti");
 

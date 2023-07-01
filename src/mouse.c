@@ -104,8 +104,6 @@ void mouse_handle_packet() {
 }
 
 void mouse_init() {
-    char buf[11];
-
     mouse_wait_write(0x64, 0xA8);
 
     mouse_wait_write(0x64, 0x20);

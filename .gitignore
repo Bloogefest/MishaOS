@@ -1,3 +1,7 @@
 *.iso
+*.raw
+*.img
 build/
 src/usb
+mishaboot/eboot/ovmf/
+CMakeLists.txt

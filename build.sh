@@ -153,6 +153,10 @@ pushd mishaboot/lgbt
 ./build.sh
 popd
 
+pushd mishaboot/eboot
+./build.sh
+popd
+
 # Create bootable image
 mkdir -p build/iso/boot/grub
 cp -f grub.cfg build/iso/boot/grub
