@@ -214,6 +214,24 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
 
     multiboot_header->mmap_length = (uint32_t)(uintptr_t) mmap - multiboot_header->mmap_addr;
 
+    for (UINTN i = 0; i < ST->NumberOfTableEntries; ++i) {
+        if (ST->ConfigurationTable[i].VendorGuid.Data1 == 0xEB9D2D30 &&
+            ST->ConfigurationTable[i].VendorGuid.Data2 == 0x2D88 &&
+            ST->ConfigurationTable[i].VendorGuid.Data3 == 0x11D3) {
+            multiboot_header->config_table = (uint32_t)(uintptr_t) ST->ConfigurationTable[i].VendorTable;
+            multiboot_header->flags |= MULTIBOOT_FLAG_CONFIG;
+            break;
+        }
+
+        if (ST->ConfigurationTable[i].VendorGuid.Data1 == 0x8868E871 &&
+            ST->ConfigurationTable[i].VendorGuid.Data2 == 0xE4F1 &&
+            ST->ConfigurationTable[i].VendorGuid.Data3 == 0x11D3) {
+            multiboot_header->config_table = (uint32_t)(uintptr_t) ST->ConfigurationTable[i].VendorTable;
+            multiboot_header->flags |= MULTIBOOT_FLAG_CONFIG;
+            break;
+        }
+    }
+
     uefi_call_wrapper(ST->BootServices->GetMemoryMap, 5, &map_size, NULL, &map_key, &descriptor_size, NULL);
     status = uefi_call_wrapper(ST->BootServices->ExitBootServices, 2, image_handle, map_key);
     if (status != EFI_SUCCESS) {
