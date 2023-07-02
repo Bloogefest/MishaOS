@@ -106,12 +106,12 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     lfb_terminal_set_font(psf_font);
     lfb_copy_from_vga();
 
-    rsdp_t* rsdp = rsdp_locate();
+    rsdp_t* rsdp = rsdp_locate(multiboot);
     if (rsdp) {
         char rsdp_string[7];
         memcpy(rsdp_string, &rsdp->oem_id, 6);
         rsdp_string[6] = 0;
-        kprintf("Found RSDP [%s]", rsdp_string);
+        kprintf("[ACPI] Found RSDP [%s]", rsdp_string);
         if (rsdp->revision == 0) {
             puts(" version 1.0");
             acpi_parse_rsdt((sdt_header_t*) rsdp->rsdt_address);
@@ -124,11 +124,10 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
                 acpi_parse_rsdt((sdt_header_t*) rsdp->rsdt_address);
             }
         } else {
-            panic("Unsupported ACPI version");
+            panic("[ACPI] Unsupported ACPI version");
         }
     } else {
-        // TODO: Use EFI to find RSDP
-        // panic("RSDP not found");
+        puts("[ACPI] RSDP not found");
     }
 
     gdt_entry_t gdt[6];
@@ -160,7 +159,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     pfa_read_memory_map(&pfa, multiboot, &meminfo, module_start, module_end);
     pde_init(&page_directory);
 
-    for (uint32_t i = (uint32_t) double_framebuffer; i < (uint32_t) double_framebuffer + lfb_height * lfb_width * 4 + 0x1000; i += 0x1000) {
+    for (uint32_t i = (uint32_t) double_framebuffer; i <= (uint32_t) double_framebuffer + lfb_height * lfb_width * 4; i += 0x1000) {
         pfa_lock_page(&pfa, (void*) i);
         pde_map_memory(&page_directory, &pfa, (void*) i, (void*) i);
     }

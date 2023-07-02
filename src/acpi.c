@@ -7,8 +7,13 @@ uint8_t acpi_cpu_ids[16];
 uint8_t acpi_cpu_count;
 uint8_t* io_apic_address;
 
-rsdp_t* rsdp_locate() {
-    rsdp_t* rsdp = (rsdp_t*) _strstr((const char*) 0x000E0000, "RSD PTR ", 0x000FFFFF - 0x000E0000);
+rsdp_t* rsdp_locate(struct multiboot* multiboot) {
+    uint32_t lookup_addr = 0x000E0000;
+    if (multiboot->flags & MULTIBOOT_FLAG_CONFIG) {
+        lookup_addr = multiboot->config_table;
+    }
+
+    rsdp_t* rsdp = (rsdp_t*) _strstr((void*) lookup_addr, "RSD PTR ", 0x000FFFFF - 0x000E0000);
     if (!rsdp) {
         return rsdp;
     }

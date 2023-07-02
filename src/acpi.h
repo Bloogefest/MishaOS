@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include "multiboot.h"
+
 #define LOCAL_APIC 0
 #define IO_APIC 1
 #define INTERRUPT_OVERRIDE 2
@@ -122,7 +124,7 @@ typedef struct apic_io_apic_s {
     uint32_t global_system_interrupt_base;
 } apic_io_apic_t;
 
-rsdp_t* rsdp_locate();
+rsdp_t* rsdp_locate(struct multiboot* multiboot);
 
 void acpi_parse_xsdt(sdt_header_t* header);
 void acpi_parse_rsdt(sdt_header_t* header);
