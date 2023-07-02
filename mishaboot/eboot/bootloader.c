@@ -7,6 +7,8 @@
 
 EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
 
+#define LOG_UEFI_CALLS 1
+
 #define strof_(x) #x
 #define strof(x) strof_(x)
 
@@ -15,7 +17,7 @@ EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
     if (EFI_ERROR(status)) {                                                                         \
         Print(L"[ERROR] L" strof(__LINE__) ": " #func "(" #__VA_ARGS__ ") FAILED (%x)\r\n", status); \
         while (1);                                                                                   \
-    } else {                                                                                         \
+    } else if(LOG_UEFI_CALLS) {                                                                      \
         Print(L"[STATUS] " #func "(" #__VA_ARGS__ ") OK\r\n");                                       \
     }
 
@@ -51,11 +53,33 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     uefi_call(ST->BootServices->LocateHandleBuffer, 5, ByProtocol, &gEfiGraphicsOutputProtocolGuid, NULL, &count, &handles);
     uefi_call(ST->BootServices->HandleProtocol, 3, handles[0], &gEfiGraphicsOutputProtocolGuid, (void**) &graphics);
 
+    INT64 best_graphics_mode = -1;
+    EFI_GRAPHICS_OUTPUT_MODE_INFORMATION* best_graphics_mode_info = NULL;
+    for (uint32_t i = 0; i < graphics->Mode->MaxMode; i++) {
+        EFI_GRAPHICS_OUTPUT_MODE_INFORMATION* current_mode;
+        UINTN current_mode_size;
+
+        uefi_call(graphics->QueryMode, 4, graphics, i, &current_mode_size, &current_mode);
+
+        if (!best_graphics_mode_info || (UINT64) current_mode->HorizontalResolution * current_mode->VerticalResolution
+                > (UINT64) best_graphics_mode_info->HorizontalResolution * best_graphics_mode_info->VerticalResolution) {
+            best_graphics_mode_info = current_mode;
+            best_graphics_mode = i;
+        }
+    }
+
+    if (best_graphics_mode == -1) {
+        Print(L"Graphics mode not found.\r\n");
+        while (1);
+    }
+
+    uefi_call(graphics->SetMode, 2, graphics, (UINT32) best_graphics_mode);
+
     gop = graphics;
 
-    uefi_call(ST->BootServices->SetWatchdogTimer, 4, 0, 0, 0, NULL);
-
     clear_screen();
+
+    uefi_call(ST->BootServices->SetWatchdogTimer, 4, 0, 0, 0, NULL);
 
     EFI_LOADED_IMAGE* loaded_image;
     uefi_call(ST->BootServices->HandleProtocol, 3, image_handle, &gEfiLoadedImageProtocolGuid, (void**) &loaded_image);
