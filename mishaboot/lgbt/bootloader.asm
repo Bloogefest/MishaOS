@@ -73,7 +73,7 @@ read_disk16:
     sub cx, 127
     jmp .start
 .good_size:
-    mov [dap_lba_lower], ax
+    mov [dap_lba_lower], eax
     mov [dap_num_sectors], cx
     mov [dap_buf_segment], dx
     mov [dap_buf_offset], bx
@@ -246,7 +246,7 @@ enable_a20_bios:
     cmp al, 1
     jz .done
     mov ax, 0x2401
-    int 0x14
+    int 0x15
     jb .failed
     cmp ah, 0
     jnz .failed
