@@ -190,12 +190,6 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
 
     multiboot_header->mmap_length = (uint32_t)(uintptr_t) mmap - multiboot_header->mmap_addr;
 
-    // TODO: Make bootloader compatible with x86_64 EFI
-    if (sizeof(uintptr_t) == sizeof(uint64_t)) {
-        Print(L"[ERROR] Current bootloader version is not compatible with x86_64 EFI.\r\n");
-        while (1);
-    }
-
     uefi_call_wrapper(ST->BootServices->GetMemoryMap, 5, &map_size, NULL, &map_key, &descriptor_size, NULL);
     status = uefi_call_wrapper(ST->BootServices->ExitBootServices, 2, image_handle, map_key);
     if (status != EFI_SUCCESS) {
@@ -205,9 +199,14 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
 
     clear_screen();
 
-    __asm__ __volatile__("mov %1, %%eax\n"
-                         "mov %2, %%ebx\n"
-                         "jmp *%0" : : "g"(entry), "g"(MULTIBOOT_EAX_MAGIC), "g"((uint32_t)(uintptr_t) multiboot_header) : "eax", "ebx");
+    if (sizeof(uintptr_t) == sizeof(uint64_t)) {
+        extern uint8_t call_kernel64[];
+        uint64_t call_kernel_data = ((uint32_t)(uintptr_t) &call_kernel64) | (0x10LL << 32);
+        __asm__ __volatile__("push %0\n"
+                             "lretl\n" : : "g"(call_kernel_data), "c"(entry), "a"(MULTIBOOT_EAX_MAGIC), "b"(multiboot_header));
+        __builtin_unreachable();
+    }
 
+    __asm__ __volatile__("jmp call_kernel32" : : "c"(entry), "a"(MULTIBOOT_EAX_MAGIC), "b"(multiboot_header));
     __builtin_unreachable();
 }
