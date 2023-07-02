@@ -246,7 +246,7 @@ enable_a20_bios:
     cmp al, 1
     jz .done
     mov ax, 0x2401
-    int 0x14
+    int 0x15
     jb .failed
     cmp ah, 0
     jnz .failed
