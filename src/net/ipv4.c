@@ -8,7 +8,7 @@
 #include "udp.h"
 #include "tcp.h"
 #include "icmp.h"
-#include "../terminal.h"
+#include "../kprintf.h"
 #include "../stdlib.h"
 
 void ipv4_recv(net_intf_t* intf, net_buf_t* packet) {
@@ -33,7 +33,7 @@ void ipv4_recv(net_intf_t* intf, net_buf_t* packet) {
     uint32_t ihl = (header->ver_ihl) & 0xF;
     uint8_t* ip_end = packet->start + net_swap16(header->len);
     if (ip_end > packet->end) {
-        terminal_putstring("   IPv4: packet too long.\n");
+        puts("   IPv4: packet too long.");
         return;
     }
 
@@ -101,47 +101,15 @@ void ipv4_dump(const net_buf_t* packet) {
     uint16_t id = net_swap16(header->id);
     uint16_t fragment = net_swap16(header->offset) & 0x1FFF;
     uint8_t ttl = header->ttl;
-    uint8_t prtocol = header->protocol;
+    uint8_t protocol = header->protocol;
     uint16_t checksum = net_swap16(header->checksum);
     uint32_t actual_checksum = net_checksum(packet->start, packet->start + sizeof(ipv4_header_t));
 
     char str[20];
-    terminal_putstring("   IPv4: version=");
-    itoa(version, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" ihl=");
-    itoa(ihl, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" dscp=");
-    itoa(dscp, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" ecn=");
-    itoa(ecn, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" len=");
-    itoa(len, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" id=");
-    itoa(id, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" fragment=");
-    itoa(fragment, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" ttl=");
-    itoa(ttl, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" protocol=");
-    itoa(prtocol, str, 10);
-    terminal_putstring(str);
-    terminal_putstring("\n   IPv4: checksum=");
-    itoa(checksum, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(actual_checksum ? "!" : "");
-    terminal_putstring(" dst=");
+    kprintf("   IPv4: version=%ld ihl=%ld dscp=%ld ecn=%ld len=%d id=%d fragment=%d ttl=%d protocol=%d\n",
+            version, ihl, dscp, ecn, len, id, fragment, ttl, protocol);
     ip4toa(&header->dst, str);
-    terminal_putstring(str);
-    terminal_putstring(" src=");
+    kprintf("   IPv4: checksum=%d%s dst=%s", checksum, actual_checksum ? "!" : "", str);
     ip4toa(&header->src, str);
-    terminal_putstring(str);
-    terminal_putchar('\n');
+    kprintf(" src=%s\n", str);
 }

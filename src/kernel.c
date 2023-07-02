@@ -1,5 +1,5 @@
 #include "kernel.h"
-#include "terminal.h"
+#include "kprintf.h"
 #include "vga_terminal.h"
 #include "lfb_terminal.h"
 #include "lfb.h"
@@ -31,8 +31,7 @@
 void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t esp) {
     terminal = vga_terminal;
     terminal_init();
-    terminal_putstring("Optimizing fish...\n");
-    char num[20];
+    puts("Optimizing fish...");
 
     uint32_t cursor_buffer[CURSOR_WIDTH * CURSOR_HEIGHT + 2];
 
@@ -41,7 +40,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     vfs_filesystem_t initrd;
 
     if (multiboot_msg == MULTIBOOT_EAX_MAGIC) {
-        terminal_putstring("Multiboot structure is valid.\n");
+        puts("Multiboot structure is valid.");
         if (!(multiboot->flags >> 6 & 0x1)) {
             panic("Invalid memory map");
         }
@@ -52,12 +51,9 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
 
         module_start = *(uint32_t*) multiboot->mods_addr;
         module_end = *(uint32_t*) (multiboot->mods_addr + 4);
-        itoa(module_end - module_start, num, 10);
-        terminal_putstring("Found initrd: ");
-        terminal_putstring(num);
-        terminal_putstring(" bytes\n");
+        kprintf("Found initrd: %lu bytes\n", module_end - module_start);
 
-        terminal_putstring("Loading initrd... \n");
+        puts("Loading initrd...");
 
         vfs_read_filesystem(&initrd, (uint8_t*) module_start);
         vfs_entry_t* test_entry = vfs_find_entry(&initrd, ".initrd_test");
@@ -70,7 +66,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
         lfb_width = vbe_info->x_res;
         lfb_height = vbe_info->y_res;
 
-        terminal_putstring("Initialized linear framebuffer.\n");
+        puts("Initialized linear framebuffer.");
     } else {
         panic("Invalid multiboot header.");
     }
@@ -111,32 +107,34 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     lfb_copy_from_vga();
 
     rsdp_t* rsdp = rsdp_locate();
-    if (!rsdp) {
-        panic("RSDP not found");
-    }
-
-    terminal_putstring("Found RDSP [");
-    terminal_put((const char*) &rsdp->oem_id, 6);
-    terminal_putstring("]");
-    if (rsdp->revision == 0) {
-        terminal_putstring(" version 1.0\n");
-        acpi_parse_rsdt((sdt_header_t*) rsdp->rsdt_address);
-    } else if (rsdp->revision == 2) {
-        terminal_putstring(" version 2.0\n");
-        rsdp2_t* rsdp2 = (rsdp2_t*) rsdp;
-        if (rsdp2->xsdt_address) {
-            acpi_parse_xsdt((sdt_header_t*) rsdp2->xsdt_address);
-        } else {
+    if (rsdp) {
+        char rsdp_string[7];
+        memcpy(rsdp_string, &rsdp->oem_id, 6);
+        rsdp_string[6] = 0;
+        kprintf("Found RSDP [%s]", rsdp_string);
+        if (rsdp->revision == 0) {
+            puts(" version 1.0");
             acpi_parse_rsdt((sdt_header_t*) rsdp->rsdt_address);
+        } else if (rsdp->revision == 2) {
+            puts(" version 2.0");
+            rsdp2_t* rsdp2 = (rsdp2_t*) rsdp;
+            if (rsdp2->xsdt_address) {
+                acpi_parse_xsdt((sdt_header_t*) rsdp2->xsdt_address);
+            } else {
+                acpi_parse_rsdt((sdt_header_t*) rsdp->rsdt_address);
+            }
+        } else {
+            panic("Unsupported ACPI version");
         }
     } else {
-        panic("Unsupported ACPI version");
+        // TODO: Use EFI to find RSDP
+        // panic("RSDP not found");
     }
 
     gdt_entry_t gdt[6];
     tss_entry_t tss;
 
-    terminal_putstring("Loading GDT...\n");
+    puts("Loading GDT...");
     gdt_encode_entry(&gdt[0], 0, 0, 0, 0);
     gdt_encode_entry(&gdt[1], 0, 0xFFFFF, 0x9A, 0xC);
     gdt_encode_entry(&gdt[2], 0, 0xFFFFF, 0x92, 0xC);
@@ -145,7 +143,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     gdt_encode_entry(&gdt[5], (uint32_t) &tss, sizeof(tss), 0x89, 0x0);
     gdt_load(sizeof(gdt) - 1, (uint32_t) &gdt);
 
-    terminal_putstring("Loading IDT...\n");
+    puts("Loading IDT...");
     idt_entry_t idt[256];
     idt_encode_entry(&idt[0x08], (uint32_t) double_fault_isr, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x0D], (uint32_t) general_protection_fault_isr, 0x08, 0, 0xE);
@@ -158,7 +156,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     idt_encode_entry(&idt[0x2C], (uint32_t) ps2_mouse_isr, 0x08, 0, 0xE);
     idt_load(sizeof(idt) - 1, (uint32_t) &idt);
 
-    terminal_putstring("Initializing paging...\n");
+    puts("Initializing paging...");
     pfa_read_memory_map(&pfa, multiboot, &meminfo, module_start, module_end);
     pde_init(&page_directory);
 
@@ -179,13 +177,13 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     enable_paging(&page_directory);
     memcpy(linear_framebuffer, double_framebuffer, lfb_width * lfb_height * 4);
 
-    terminal_putstring("Initializing heap...\n");
-    heap_init((void*) (2147483648U & ~0xFFFU), 0x1000); // TODO: 64-bit kernel for larger address space
+    // puts("Initializing heap..."); // TODO: Rewrite heap
+    // heap_init((void*) (2147483648U & ~0xFFFU), 0x10); // TODO: 64-bit kernel for larger address space
 
-    terminal_putstring("Remapping PIC...\n");
+    puts("Remapping PIC...");
     pic_remap(0x20, 0x28);
 
-    terminal_putstring("Initializing mouse...\n");
+    puts("Initializing mouse...");
     vfs_entry_t* cursors = vfs_find_entry(&initrd, "cursors");
     vfs_entry_t* cursor = vfs_find_entry_in(&initrd, cursors, "center_ptr.tga");
     tga_parse(cursor_buffer, vfs_file_content(&initrd, cursor, 0), cursor->size);
@@ -196,16 +194,16 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     mouse_set_cursor(cursor_buffer + 2);
     mouse_init();
 
-    terminal_putstring("Initializing PIT...\n");
+    puts("Initializing PIT...");
     pit_set_phase(1000);
 
-    terminal_putstring("Enabling IRQs...\n");
+    puts("Enabling IRQs...");
     pic_irq_set_master_mask(0b11111000);
-    pic_irq_set_slave_mask(0b11100001);
+    pic_irq_set_slave_mask(0b11101111);
 
     asm("sti");
 
-    terminal_putstring("Initializing PCI...\n");
+    puts("Initializing PCI...");
     for (uint32_t bus = 0; bus < 256; ++bus) {
         for (uint32_t dev = 0; dev < 32; ++dev) {
             uint32_t base_id = pci_get_id(bus, dev, 0);
@@ -220,11 +218,11 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
 
     ide_init(0x1F0, 0x3F6, 0x170, 0x376, 0x000);
 
-    terminal_putstring("Initializing networking...\n");
+    puts("Initializing networking...");
     net_post_init = f3f5_connect;
     net_init();
 
-    terminal_putstring("Done. MishaOS loaded.\n");
+    puts("Done. MishaOS loaded.");
 
     for (;;) {
         mouse_handle_packet();

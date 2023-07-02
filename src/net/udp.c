@@ -7,7 +7,7 @@
 #include "port.h"
 #include "dns.h"
 #include "ntp.h"
-#include "../terminal.h"
+#include "../kprintf.h"
 #include "../stdlib.h"
 
 void udp_recv(net_intf_t* intf, const ipv4_header_t* ip_header, net_buf_t* packet) {
@@ -77,18 +77,5 @@ void udp_dump(const net_buf_t* packet) {
     uint16_t len = net_swap16(header->len);
     uint16_t checksum = net_swap16(header->checksum);
 
-    char str[20];
-    terminal_putstring("   UDP: src=");
-    itoa(src_port, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" dst=");
-    itoa(dst_port, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" len=");
-    itoa(len, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" checksum=");
-    itoa(checksum, str, 10);
-    terminal_putstring(str);
-    terminal_putchar('\n');
+    kprintf("   UDP: src=%d dst=%d len=%d checksum=%d\n", src_port, dst_port, len, checksum);
 }

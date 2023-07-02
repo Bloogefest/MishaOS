@@ -4,7 +4,7 @@
 #include "arp.h"
 #include "ipv4.h"
 #include "in.h"
-#include "../terminal.h"
+#include "../kprintf.h"
 #include "../stdlib.h"
 
 static uint8_t eth_decode(eth_packet_t* eth, net_buf_t* packet) {
@@ -55,7 +55,7 @@ void eth_recv(net_intf_t* intf, net_buf_t* packet) {
             break;
 
         case ET_IPV6:
-            terminal_putstring("recv: IPv6\n");
+            puts("recv: IPv6");
             break;
     }
 }
@@ -88,7 +88,7 @@ void eth_intf_send(net_intf_t* intf, const void* dst, uint16_t ethertype, net_bu
     }
 
     if (!dst_eth_addr) {
-        terminal_putstring("Dropped packet\n");
+        puts("Dropped packet");
         return;
     }
 
@@ -112,18 +112,10 @@ void eth_dump(net_buf_t* packet) {
     if (eth_decode(&eth, packet)) {
         char str[18];
         uint32_t len = packet->end - packet->start - eth.header_len;
-        terminal_putstring("   ETH: dst=");
         ethtoa(&eth.header->dst, str);
-        terminal_putstring(str);
-        terminal_putstring(" src=");
+        kprintf("   ETH: dst=%s", str);
         ethtoa(&eth.header->src, str);
-        terminal_putstring(str);
-        terminal_putstring(" ethertype=0x");
-        itoa(eth.ethertype, str, 16);
-        terminal_putstring(str);
-        terminal_putstring(" len=");
-        itoa(len, str, 10);
-        terminal_putstring(str);
-        terminal_putchar('\n');
+        kprintf(" src=%s ethertype=0x04%x len=%ld\n",
+                str, eth.ethertype, len);
     }
 }

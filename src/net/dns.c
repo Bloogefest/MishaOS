@@ -5,7 +5,7 @@
 #include "in.h"
 #include "udp.h"
 #include "../gpd.h"
-#include "../terminal.h"
+#include "../kprintf.h"
 #include "../stdlib.h"
 #include "../string.h"
 
@@ -93,7 +93,7 @@ void dns_recv(net_intf_t* intf, const net_buf_t* buf) {
     }
 
     if (!entry) {
-        terminal_putstring("DNS callback entry not found.\n");
+        puts("DNS callback entry not found.");
         return;
     }
 
@@ -174,13 +174,13 @@ static const uint8_t* dns_print_host(const net_buf_t* packet, const uint8_t* p, 
             return p;
         } else if (count > 0) {
             if (!first) {
-                terminal_putchar('.');
+                putchar('.');
             }
 
             char buf[64];
             memcpy(buf, (void*) p, count);
             buf[count] = 0;
-            terminal_putstring(buf);
+            kprintf("%s", buf);
 
             p += count;
             first = 0;
@@ -191,28 +191,19 @@ static const uint8_t* dns_print_host(const net_buf_t* packet, const uint8_t* p, 
 }
 
 static const uint8_t* dns_print_query(const net_buf_t* packet, const uint8_t* p) {
-    terminal_putstring("    Query: ");
+    kprintf("    Query: ");
     p = dns_print_host(packet, p, 1);
 
     uint16_t query_type = (p[0] << 8) | p[1];
     uint16_t query_class = (p[2] << 8) | p[3];
     p += 4;
 
-    char str[20];
-    terminal_putstring(" type=");
-    itoa(query_type, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" class=");
-    itoa(query_class, str, 10);
-    terminal_putchar('\n');
-
+    kprintf(" type=%d class=%d\n", query_type, query_class);
     return p;
 }
 
 static const uint8_t* dns_print_rr(const char* header, const net_buf_t* packet, const uint8_t* p) {
-    terminal_putstring("    ");
-    terminal_putstring(header);
-    terminal_putstring(": ");
+    kprintf("    %s: ", header);
     p = dns_print_host(packet, p, 1);
 
     uint16_t query_type = (p[0] << 8) | p[1];
@@ -224,29 +215,17 @@ static const uint8_t* dns_print_rr(const char* header, const net_buf_t* packet, 
     const uint8_t* data = p;
 
     char str[20];
-    terminal_putstring(" type=");
-    itoa(query_type, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" class=");
-    itoa(query_class, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" ttl=");
-    itoa(ttl, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" dataLen=");
-    itoa(data_len, str, 10);
-    terminal_putstring(str);
-    terminal_putchar(' ');
+    kprintf(" type=%d class=%d ttl=%ld dataLen=%d ", query_type, query_class, ttl, data_len);
 
     if (query_type == 1 && data_len == 4) {
         const ipv4_addr_t* addr = (const ipv4_addr_t*) data;
         ip4toa(addr, str);
-        terminal_putstring(str);
+        kprintf("%s", str);
     } else if (query_type == 2) {
         dns_print_host(packet, data, 1);
     }
 
-    terminal_putchar('\n');
+    putchar('\n');
 
     return p + data_len;
 }
@@ -264,26 +243,8 @@ void dns_dump(const net_buf_t* packet) {
     uint16_t authority_count = net_swap16(header->authority_count);
     uint16_t additional_count = net_swap16(header->additional_count);
 
-    char str[20];
-    terminal_putstring("   DNS: id=");
-    itoa(id, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" flags=0x");
-    itoa(flags, str, 16);
-    terminal_putstring(str);
-    terminal_putstring(" questions=");
-    itoa(question_count, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" answers=");
-    itoa(answer_count, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" authorities=");
-    itoa(authority_count, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" additional=");
-    itoa(additional_count, str, 10);
-    terminal_putstring(str);
-    terminal_putchar('\n');
+    kprintf("   DNS: id=%d flags=0x%04x questions=%d answers=%d authorities=%d additional=%d\n",
+            id, flags, question_count, answer_count, authority_count, additional_count);
 
     const uint8_t* p = packet->start + sizeof(dns_header_t);
     for (uint32_t i = 0; i < question_count; ++i) {

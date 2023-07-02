@@ -51,3 +51,14 @@ size_t terminal_get_columns() {
 size_t terminal_get_rows() {
     return terminal.rows;
 }
+
+int putchar(int c) {
+    terminal_putchar((char) c);
+    return c;
+}
+
+int puts(const char* str) {
+    terminal_putstring(str);
+    terminal_putchar('\n');
+    return 0;
+}

@@ -1,7 +1,7 @@
 #include "mouse.h"
 #include "io.h"
 #include "lfb.h"
-#include "terminal.h"
+#include "kprintf.h"
 #include "stdlib.h"
 
 static uint8_t wheel = 0;
@@ -104,8 +104,6 @@ void mouse_handle_packet() {
 }
 
 void mouse_init() {
-    char buf[11];
-
     mouse_wait_write(0x64, 0xA8);
 
     mouse_wait_write(0x64, 0x20);
@@ -116,17 +114,11 @@ void mouse_init() {
 
     mouse_wait_write(0x64, 0xA9);
     uint8_t if_resp = mouse_read();
-    itoa(if_resp, buf, 16);
-    terminal_putstring("Interface response: 0x");
-    terminal_putstring(buf);
-    terminal_putchar('\n');
+    kprintf("Interface response: 0x%x\n", if_resp);
 
     mouse_write(0xF2);
     uint8_t id = mouse_read();
-    itoa(id, buf, 16);
-    terminal_putstring("ID response: 0x");
-    terminal_putstring(buf);
-    terminal_putchar('\n');
+    kprintf("ID response: 0x%x\n", id);
 
     mouse_write(0xF3);
     mouse_write(0xC8);
@@ -137,10 +129,7 @@ void mouse_init() {
 
     mouse_write(0xF2);
     wheel = mouse_read();
-    itoa(wheel, buf, 16);
-    terminal_putstring("Wheel mouse: 0x");
-    terminal_putstring(buf);
-    terminal_putchar('\n');
+    kprintf("Wheel mouse: 0x%x\n", wheel);
 
     mouse_write(0xF3);
     mouse_write(0xC8);
@@ -151,10 +140,7 @@ void mouse_init() {
 
     mouse_write(0xF2);
     buttons = mouse_read();
-    itoa(buttons, buf, 16);
-    terminal_putstring("Ext buttons: 0x");
-    terminal_putstring(buf);
-    terminal_putchar('\n');
+    kprintf("Ext buttons: 0x%x\n", buttons);
 
     mouse_write(0xF6);
     mouse_write(0xE6);
@@ -166,10 +152,7 @@ void mouse_init() {
 
     mouse_write(0xF4);
     uint8_t enable_resp = mouse_read();
-    itoa(enable_resp, buf, 16);
-    terminal_putstring("Enable response: 0x");
-    terminal_putstring(buf);
-    terminal_putchar('\n');
+    kprintf("Enable response: 0x%x\n", enable_resp);
 
     outb(0xA1, inb(0xA1) & ~0x10);
 

@@ -11,7 +11,7 @@
 #include "../gpd.h"
 #include "../stdlib.h"
 #include "../string.h"
-#include "../terminal.h"
+#include "../kprintf.h"
 
 static uint32_t base_isn;
 static tcp_conn_t* free_conn_list;
@@ -82,35 +82,12 @@ static void tcp_dump(const net_buf_t* packet) {
     uint32_t header_len = header->off >> 2;
     uint32_t data_len = (packet->end - packet->start) - header_len;
 
-    terminal_putstring("   TCP: src=");
     ip4ptoa(&pheader->src, src_port, str);
-    terminal_putstring(str);
-    terminal_putstring(" dst=");
+    kprintf("   TCP: src=%s", str);
     ip4ptoa(&pheader->dst, dst_port, str);
-    terminal_putstring(str);
-    terminal_putstring(" seq=");
-    itoa(seq, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" ack=");
-    itoa(ack, str, 10);
-    terminal_putstring(str);
-    terminal_putstring("\n   TCP: dataLen=");
-    itoa(data_len, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" flags=0x");
-    itoa(header->flags, str, 16);
-    terminal_putstring(str);
-    terminal_putstring(" window=");
-    itoa(window_size, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" urgent=");
-    itoa(urgent, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" checksum=");
-    itoa(checksum, str, 10);
-    terminal_putstring(str);
-    terminal_putchar(actual_checksum ? '!' : ' ');
-    terminal_putchar('\n');
+    kprintf(" dst=%s seq=%ld ack=%ld\n", str, seq, ack);
+    kprintf("   TCP: dataLen=%ld flags=0x%x window=%d urgent=%d checksum=%d%s\n",
+            data_len, header->flags, window_size, urgent, checksum, actual_checksum ? "!" : "");
 
     if (header_len > sizeof(tcp_header_t)) {
         const uint8_t* ptr = packet->start + sizeof(tcp_header_t);
@@ -120,10 +97,7 @@ static void tcp_dump(const net_buf_t* packet) {
         tcp_parse_options(&options, ptr, end);
 
         if (options.mss) {
-            terminal_putstring("   TCP: mss=");
-            itoa(options.mss, str, 10);
-            terminal_putstring(str);
-            terminal_putchar('\n');
+            kprintf("   TCP: mss=%d\n", options.mss);
         }
     }
 }

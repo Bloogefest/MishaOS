@@ -1,4 +1,16 @@
+## MishaOS
+
 Операционная система для миш с оптимизированной рыбой*.
+
+---
+
+### Загрузчики
+
+В MishaOS есть собственные загрузчики (бутлоадеры), как для Legacy BIOS 
+(Misha LgBT - Misha **L**e**g**acy **B**IOS **T**wo-stage Bootloader), так и для 
+EFI (MishU E-Boot - **Mish**a **U**nified **E**FI **Boot**loader - тестовый).
+Сокращенно оба загрузчика называются MishU E-Boot LgBT. Более подробную 
+информацию можно найти в README самих загрузчиков.
 
 ---
 

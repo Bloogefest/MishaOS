@@ -7,8 +7,7 @@
 #include "../../heap.h"
 #include "../../string.h"
 #include "../../paging.h"
-#include "../../terminal.h"
-#include "../../stdlib.h"
+#include "../../kprintf.h"
 
 typedef struct rtl8139_s {
     eth_addr_t mac_address;
@@ -42,7 +41,7 @@ static uint8_t read_mac_address() {
 }
 
 void rtl8139_send(net_buf_t* buf) {
-    terminal_putstring("tx\n");
+    puts("tx");
     uint32_t phys_addr = (uint32_t) pde_get_phys_addr(&page_directory, buf->start);
 
     outl(device.io_base + tsad_array[device.tx_cur], phys_addr);
@@ -134,7 +133,7 @@ void rtl8139_driver_init(pci_device_info_t* info, uint32_t bus, uint32_t dev, ui
         return;
     }
 
-    terminal_putstring("Initializing RTL8139...\n");
+    puts("Initializing RTL8139...");
 
     uint32_t id = pci_get_id(bus, dev, func);
 
@@ -142,7 +141,7 @@ void rtl8139_driver_init(pci_device_info_t* info, uint32_t bus, uint32_t dev, ui
     pci_get_bar(&bar, id, 0);
 
     if ((bar.flags & PCI_BAR_IO) == 0) {
-        terminal_putstring("Only port based I/O supported.\n");
+        puts("Only port based I/O supported.");
         return;
     }
 
@@ -186,9 +185,7 @@ void rtl8139_driver_init(pci_device_info_t* info, uint32_t bus, uint32_t dev, ui
 
     char str[20];
     ethtoa(&device.mac_address, str);
-    terminal_putstring("MAC address: ");
-    terminal_putstring(str);
-    terminal_putchar('\n');
+    kprintf("MAC address: %s\n",str);
 
     net_intf_t* intf = net_intf_create();
     intf->eth_addr = device.mac_address;

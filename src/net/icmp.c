@@ -1,10 +1,8 @@
 #include "icmp.h"
 
-#include "net.h"
 #include "checksum.h"
 #include "../string.h"
-#include "../stdlib.h"
-#include "../terminal.h"
+#include "../kprintf.h"
 
 static void icmp_dump(const net_buf_t* packet) {
 #ifndef NET_DEBUG
@@ -24,27 +22,8 @@ static void icmp_dump(const net_buf_t* packet) {
 
     uint32_t actual_checksum = net_checksum(packet->start, packet->end);
 
-    char str[20];
-    terminal_putstring("   ICMP: type=");
-    itoa(type, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" code=");
-    itoa(code, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" id=");
-    itoa(id, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" sequence=");
-    itoa(sequence, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" len=");
-    itoa(packet->end - packet->start, str, 10);
-    terminal_putstring(str);
-    terminal_putstring(" checksum=");
-    itoa(checksum, str, 10);
-    terminal_putstring(str);
-    terminal_putchar(actual_checksum ? '!' : ' ');
-    terminal_putchar('\n');
+    kprintf("   ICMP: type=%d code=%d id=%d sequence=%d len=%ld checksum=%d%s\n",
+            type, code, id, sequence, packet->end - packet->start, checksum, actual_checksum ? "!" : " ");
 }
 
 static void icmp_echo_reply(const ipv4_addr_t* addr, uint16_t id, uint16_t sequence, const uint8_t* data, const uint8_t* end) {
@@ -86,9 +65,7 @@ void icmp_recv(net_intf_t* intf, const ipv4_header_t* header, net_buf_t* packet)
         case ICMP_TYPE_ECHO_REQUEST: {
             char str[16];
             ip4toa(&header->src, str);
-            terminal_putstring("ICMP: Echo request from ");
-            terminal_putstring(str);
-            terminal_putchar('\n');
+            kprintf("ICMP: Echo request from %s\n", str);
             icmp_echo_reply(&header->src, id, sequence, data + 8, packet->end);
             break;
         }
@@ -96,9 +73,7 @@ void icmp_recv(net_intf_t* intf, const ipv4_header_t* header, net_buf_t* packet)
         case ICMP_TYPE_ECHO_REPLY: {
             char str[16];
             ip4toa(&header->src, str);
-            terminal_putstring("ICMP: Echo reply from ");
-            terminal_putstring(str);
-            terminal_putchar('\n');
+            kprintf("ICMP: Echo reply from %s\n", str);
             break;
         }
     }
