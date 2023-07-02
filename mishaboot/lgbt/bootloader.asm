@@ -73,7 +73,7 @@ read_disk16:
     sub cx, 127
     jmp .start
 .good_size:
-    mov [dap_lba_lower], ax
+    mov [dap_lba_lower], eax
     mov [dap_num_sectors], cx
     mov [dap_buf_segment], dx
     mov [dap_buf_offset], bx
