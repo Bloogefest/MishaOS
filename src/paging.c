@@ -81,8 +81,6 @@ void pfa_read_memory_map(pfa_t* pfa, struct multiboot* multiboot, kernel_meminfo
     pfa_lock_pages(pfa, (void*) meminfo->kernel_physical_start,
                    (meminfo->kernel_physical_end - meminfo->kernel_physical_start) / 0x1000 + 1);
     pfa_lock_pages(pfa, (void*) initrd_start, (initrd_end - initrd_start) / 0x1000 + 1);
-    free_memory = largest_free_length;
-    pfa_lock_pages(pfa, pfa->buffer, pfa->size / 0x1000 + 1);
 
     entry = (multiboot_memory_map_t*) multiboot->mmap_addr;
     while ((uint32_t) entry < multiboot->mmap_addr + multiboot->mmap_length) {
@@ -92,6 +90,9 @@ void pfa_read_memory_map(pfa_t* pfa, struct multiboot* multiboot, kernel_meminfo
 
         entry = (multiboot_memory_map_t*) (((uint32_t) entry) + entry->size + sizeof(entry->size));
     }
+
+    free_memory = largest_free_length;
+    pfa_lock_pages(pfa, pfa->buffer, pfa->size / 0x1000 + 1);
 }
 
 static inline uint8_t pfa_get_bit(pfa_t* pfa, uint32_t index) {
