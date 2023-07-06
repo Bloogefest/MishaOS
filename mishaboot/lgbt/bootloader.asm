@@ -431,12 +431,11 @@ bits 32
     ret
 
 align 8,  db 0
+gdt_base:
 gdtr:
     dw gdt_end - gdt_base - 1
     dd gdt_base
-gdt_base:
-    dd 0
-    dd 0
+    dw 0
 
     dw 0xFFFF
     dw 0
