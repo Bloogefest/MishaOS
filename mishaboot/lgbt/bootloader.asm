@@ -431,108 +431,114 @@ bits 32
     ret
 
 align 8,  db 0
-gdtr:     dw gdt_end - gdt_base - 1
-          dd gdt_base
-gdt_base: dd 0 ; null descriptor
-          dd 0
+gdtr:
+    dw gdt_end - gdt_base - 1
+    dd gdt_base
+gdt_base:
+    dd 0
+    dd 0
 
-          dw 0xFFFF
-          dw 0
-          db 0
-          db 0x9A
-          db 0xCF
-          db 0
+    dw 0xFFFF
+    dw 0
+    db 0
+    db 0x9A
+    db 0xCF
+    db 0
 
-          dw 0xFFFF
-          dw 0
-          db 0
-          db 0x92
-          db 0xCF
-          db 0
-          dw 0xFFFF
+    dw 0xFFFF
+    dw 0
+    db 0
+    db 0x92
+    db 0xCF
+    db 0
+    dw 0xFFFF
 
-          dw 0
-          db 0
-          db 0x9E
-          db 0
-          db 0
-          dw 0xFFFF
-          dw 0
-          db 0
-          db 0x92
-          db 0
-          db 0
+    dw 0
+    db 0
+    db 0x9E
+    db 0
+    db 0
+    dw 0xFFFF
+    dw 0
+    db 0
+    db 0x92
+    db 0
+    db 0
 gdt_end:
 
 align 4, db 0
 global drive_params
-drive_params: dw 0x1A
-              dw 0
-              dd 0
-              dd 0
-              dd 0
-              dd 0
-              dd 0
+drive_params:
+    dw 0x1A
+    dw 0
+    dd 0
+    dd 0
+    dd 0
+    dd 0
+    dd 0
 global drive_params_bps
-drive_params_bps: dw 0
+drive_params_bps:
+    dw 0
 
 align 4, db 0
 global vbe_info
-vbe_info: dw 0
-          dw 0
-          dw 0
-          dw 0
-          dd 0
-          dd 0
+vbe_info:
+    dw 0 ; attributes
+    dw 0 ; win a/b
+    dw 0 ; granularity
+    dw 0 ; winsize
+    dd 0 ; segment a/b
+    dd 0 ; real fct ptr
 global vbe_info_pitch
 vbe_info_pitch:
-          dw 0
+    dw 0 ; pitch
 global vbe_info_width
 vbe_info_width:
-          dw 0
+    dw 0 ; x_res
 global vbe_info_height
 vbe_info_height:
-          dw 0
-          dw 0
-          db 0
+    dw 0 ; y_res
+    dw 0 ; w/y char
+    db 0 ; planes
 global vbe_info_bpp
 vbe_info_bpp:
-          db 0
-          db 0
-          db 0
-          db 0
-          db 0
-          db 0
-          db 0
-          db 0
-          db 0
-          db 0
-          db 0
-          db 0
-          db 0
-          db 0
-          db 0
+    db 0 ; bpp
+    db 0 ; banks
+    db 0 ; memory_model
+    db 0 ; bank_size
+    db 0 ; image_pages
+    db 0 ; reserved
+    db 0 ; red_mask
+    db 0 ; red_position
+    db 0 ; green_mask
+    db 0 ; green_position
+    db 0 ; blue_mask
+    db 0 ; blue_position
+    db 0 ; rsv_mask
+    db 0 ; rsv_position
+    db 0 ; directcolor_attributes
 global vbe_info_fbaddr
 vbe_info_fbaddr:
-          dd 0
-          dd 0
-          dw 0
-          times 206 db 0
+    dd 0 ; physbase
+    dd 0 ; reserved
+    dw 0 ; reserved
+    times 206 db 0
 
 vbe_cont_info:
-          db "VBE2"
-          dw 0x200
-          dd 0
-          dd 0
+    db "VBE2"
+    dw 0x200
+    dd 0
+    dd 0
 global vbe_cont_info_mode_off
 vbe_cont_info_mode_off:
-          dw 0
+    dw 0
 vbe_cont_info_mode_seg:
-          dw 0
-          times 494 db 0
+    dw 0
+    times 494 db 0
 
 global disk_space
-disk_space: times 2048 db 0
+disk_space:
+    times 2048 db 0
 
 align 512, db 0
 
