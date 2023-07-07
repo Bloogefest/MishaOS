@@ -169,9 +169,12 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
         pde_map_memory(&page_directory, &pfa, (void*) i, (void*) i);
     }
 
-    for (uint32_t i = (uint32_t) pfa_request_page(&pfa); i <= pfa_free_memory(); i += 0x1000) {
+    void* phys_start = pfa_request_page(&pfa);
+    for (uint32_t i = (uint32_t) phys_start; i <= (uint32_t) phys_start + pfa_free_memory(); i += 0x1000) {
         pde_map_memory(&page_directory, &pfa, (void*) i, (void*) i);
     }
+
+    pfa_free_page(&pfa, phys_start);
 
     enable_paging(&page_directory);
     memcpy(linear_framebuffer, double_framebuffer, lfb_width * lfb_height * 4);
