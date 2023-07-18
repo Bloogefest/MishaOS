@@ -43,6 +43,7 @@ _start:
     push $kernel_virtual_start
     push $kernel_physical_end
     push $kernel_physical_start
+    xor %ebp, %ebp
     call kernel_main
     cli
 1:  hlt

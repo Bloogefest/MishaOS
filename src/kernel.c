@@ -14,7 +14,6 @@
 #include "pci.h"
 #include "multiboot.h"
 #include "ide.h"
-#include "stdlib.h"
 #include "string.h"
 #include "mouse.h"
 #include "gpd.h"
@@ -22,11 +21,29 @@
 #include "paging.h"
 #include "heap.h"
 #include "net/net.h"
+#include "net/intf.h"
 #include "gui/mouse_renderer.h"
 #include "gui/gui.h"
-#include "mc/f3f5.h"
 
 #include "../mishavfs/vfs.h"
+
+kernel_func_info_t* kernel_funcs = 0;
+
+const char* kernel_get_func_name(uintptr_t addr) {
+    if (!kernel_funcs) {
+        return "??";
+    }
+
+    kernel_func_info_t* func = kernel_funcs;
+    while (func->start_addr > addr || func->end_addr <= addr) {
+        func = (kernel_func_info_t*) ((uint8_t*) func + func->len);
+        if (func->len == 0) {
+            return "??";
+        }
+    }
+
+    return func->func_name;
+}
 
 void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t multiboot_msg, uint32_t esp) {
     terminal = vga_terminal;
@@ -72,6 +89,12 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     }
 
     uint32_t* double_framebuffer = (uint32_t*) (16 * 1024 * 1024);
+
+    vfs_entry_t* funcs = vfs_find_entry(&initrd, ".funcs");
+    if (funcs) {
+        kernel_funcs = (kernel_func_info_t*) vfs_file_content(&initrd, funcs, 0);
+        puts("Loaded kernel functions."); // TODO: DWARF
+    }
 
     vfs_entry_t* logo = vfs_find_entry(&initrd, "logo.tga");
     tga_parse(double_framebuffer, vfs_file_content(&initrd, logo, 0), logo->size);
@@ -179,8 +202,8 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     enable_paging(&page_directory);
     memcpy(linear_framebuffer, double_framebuffer, lfb_width * lfb_height * 4);
 
-    // puts("Initializing heap..."); // TODO: Rewrite heap
-    // heap_init((void*) (2147483648U & ~0xFFFU), 0x10); // TODO: 64-bit kernel for larger address space
+    puts("Initializing heap..."); // TODO: Rewrite heap
+    heap_init((void*) (2147483648U & ~0xFFFU), 0x10); // TODO: 64-bit kernel for larger address space
 
     puts("Remapping PIC...");
     pic_remap(0x20, 0x28);
@@ -201,7 +224,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
 
     puts("Enabling IRQs...");
     pic_irq_set_master_mask(0b11111000);
-    pic_irq_set_slave_mask(0b11101111);
+    pic_irq_set_slave_mask(0b11100001);
 
     asm("sti");
 
@@ -220,8 +243,12 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
 
     ide_init(0x1F0, 0x3F6, 0x170, 0x376, 0x000);
 
+    void net_post(net_intf_t* intf) {
+        kprintf("Configured network interface %s.\n", intf->name);
+    }
+
     puts("Initializing networking...");
-    net_post_init = f3f5_connect;
+    net_post_init = net_post;
     net_init();
 
     puts("Done. MishaOS loaded.");

@@ -34,6 +34,10 @@ void double_fault_isr(struct interrupt_frame* frame) {
 __attribute__((interrupt))
 void page_fault_isr(struct interrupt_frame* frame) {
     asm("cli");
+    uint32_t fault_addr;
+    asm volatile("mov %%cr2, %0" : "=r"(fault_addr));
+    kprintf("Page Fault at 0x%lx:\n Present: %d\n R/W: %d\n User: %d\n",
+            fault_addr, !(frame->err_code & 0x01), !!(frame->err_code & 0x02), !!(frame->err_code & 0x04));
     panic("Page Fault");
 }
 

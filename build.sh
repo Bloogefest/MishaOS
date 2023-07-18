@@ -2,7 +2,7 @@
 # TODO: Makefile
 set -e
 
-cc_flags="-std=gnu99 -ffreestanding -Wall -O2 -Wextra -Imishavfs -Isrc"
+cc_flags="-std=gnu99 -ffreestanding -g -fno-omit-frame-pointer -Wall -O2 -Wextra -Imishavfs -Isrc"
 
 # Build sources
 mkdir -p build
@@ -133,12 +133,10 @@ objects="build/idt_s.o \
 
 i686-elf-gcc -T linker.ld -o build/mishaos.bin -ffreestanding -O2 -nostdlib $objects -lgcc
 
-#        build/usb/controller.o \
-#        build/usb/desc.o \
-#        build/usb/dev.o \
-#        build/usb/driver.o \
-#        build/usb/ehci.o \
-#        build/usb/uhci.o \
+i686-elf-objcopy --only-keep-debug build/mishaos.bin build/mishaos.debug
+i686-elf-strip --strip-debug --strip-unneeded build/mishaos.bin
+
+python3 export_debug.py
 
 # Build mishavfs
 pushd mishavfs
