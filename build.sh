@@ -2,114 +2,123 @@
 # TODO: Makefile
 set -e
 
-cc_flags="-std=gnu99 -ffreestanding -g -fno-omit-frame-pointer -Wall -O2 -Wextra -Imishavfs -Isrc -Wno-unused-parameter"
+cc_flags="-std=gnu99 -ffreestanding -g -fno-omit-frame-pointer -Wall -O2 -Wextra -Imishavfs -Isrc -Wno-unused-parameter -DMISHAOS -DMISHAOS_KERNEL"
 
-# Build sources
+# Build kernel
+rm -rf build
 mkdir -p build
+mkdir -p build/cpu
+mkdir -p build/dev
+mkdir -p build/dev/input
+mkdir -p build/dev/net
+mkdir -p build/dev/storage
+mkdir -p build/dev/usb
+mkdir -p build/lib
+#mkdir -p build/mc
+mkdir -p build/misc
 mkdir -p build/net
-mkdir -p build/net/driver
-mkdir -p build/usb
-mkdir -p build/gui
-mkdir -p build/mc
 mkdir -p build/sys
-i686-elf-as src/boot.s -o build/boot.o
-i686-elf-gcc -c src/kernel.c -o build/kernel.o $cc_flags
-i686-elf-gcc -c src/terminal.c -o build/terminal.o $cc_flags
-i686-elf-as src/gdt.s -o build/gdt_s.o
-i686-elf-gcc -c src/gdt.c -o build/gdt.o $cc_flags
-i686-elf-as src/idt.s -o build/idt_s.o
-i686-elf-gcc -c src/idt.c -o build/idt.o $cc_flags
-i686-elf-gcc -c src/gpd.c -o build/gpd.o $cc_flags -O0
-i686-elf-gcc -c src/isrs.c -o build/isrs.o $cc_flags -mgeneral-regs-only -Wno-unused-parameter
-i686-elf-gcc -c src/panic.c -o build/panic.o $cc_flags
-i686-elf-gcc -c src/string.c -o build/string.o $cc_flags
-i686-elf-gcc -c src/pic.c -o build/pic.o $cc_flags
-i686-elf-gcc -c src/io.c -o build/io.o $cc_flags
-i686-elf-gcc -c src/acpi.c -o build/acpi.o $cc_flags
-i686-elf-gcc -c src/stdlib.c -o build/stdlib.o $cc_flags
-i686-elf-gcc -c src/pci.c -o build/pci.o $cc_flags
-i686-elf-gcc -c src/driver.c -o build/driver.o $cc_flags
-i686-elf-gcc -c src/ide.c -o build/ide.o $cc_flags
-i686-elf-gcc -c mishavfs/vfs.c -o build/vfs.o $cc_flags
-i686-elf-gcc -c src/vga_terminal.c -o build/vga_terminal.o $cc_flags
-i686-elf-gcc -c src/lfb.c -o build/lfb.o $cc_flags
-i686-elf-gcc -c src/psf_font.c -o build/psf_font.o $cc_flags
-i686-elf-gcc -c src/lfb_terminal.c -o build/lfb_terminal.o $cc_flags
-i686-elf-gcc -c src/tga.c -o build/tga.o $cc_flags
-i686-elf-gcc -c src/mouse.c -o build/mouse.o $cc_flags
-i686-elf-gcc -c src/pit.c -o build/pit.o $cc_flags
-i686-elf-gcc -c src/sleep.c -o build/sleep.o $cc_flags
-i686-elf-gcc -c src/paging.c -o build/paging.o $cc_flags -O0
-i686-elf-gcc -c src/heap.c -o build/heap.o $cc_flags -O0
-i686-elf-gcc -c src/ctype.c -o build/ctype.o $cc_flags
-i686-elf-gcc -c src/time.c -o build/time.o $cc_flags
-i686-elf-gcc -c src/rtc.c -o build/rtc.o $cc_flags
-i686-elf-gcc -c src/kprintf.c -o build/kprintf.o $cc_flags
-i686-elf-gcc -c src/sys/syscall.c -o build/sys/syscall.o $cc_flags -mgeneral-regs-only
-i686-elf-gcc -c src/net/addr.c -o build/net/addr.o $cc_flags
-i686-elf-gcc -c src/net/buf.c -o build/net/buf.o $cc_flags
-i686-elf-gcc -c src/net/eth.c -o build/net/eth.o $cc_flags
-i686-elf-gcc -c src/net/intf.c -o build/net/intf.o $cc_flags
-i686-elf-gcc -c src/net/ipv4.c -o build/net/ipv4.o $cc_flags
-i686-elf-gcc -c src/net/route.c -o build/net/route.o $cc_flags
-i686-elf-gcc -c src/net/checksum.c -o build/net/checksum.o $cc_flags
-i686-elf-gcc -c src/net/arp.c -o build/net/arp.o $cc_flags
-i686-elf-gcc -c src/net/net.c -o build/net/net.o $cc_flags
-i686-elf-gcc -c src/net/loopback.c -o build/net/loopback.o $cc_flags
-i686-elf-gcc -c src/net/dns.c -o build/net/dns.o $cc_flags
-i686-elf-gcc -c src/net/udp.c -o build/net/udp.o $cc_flags
-i686-elf-gcc -c src/net/port.c -o build/net/port.o $cc_flags
-i686-elf-gcc -c src/net/dhcp.c -o build/net/dhcp.o $cc_flags
-i686-elf-gcc -c src/net/ntp.c -o build/net/ntp.o $cc_flags
-i686-elf-gcc -c src/net/tcp.c -o build/net/tcp.o $cc_flags
-i686-elf-gcc -c src/net/icmp.c -o build/net/icmp.o $cc_flags
-i686-elf-gcc -c src/net/driver/intel.c -o build/net/driver/intel.o $cc_flags
-i686-elf-gcc -c src/net/driver/rtl8139.c -o build/net/driver/rtl8139.o $cc_flags
-#i686-elf-gcc -c src/usb/controller.c -o build/usb/controller.o $cc_flags
-#i686-elf-gcc -c src/usb/desc.c -o build/usb/desc.o $cc_flags
-#i686-elf-gcc -c src/usb/dev.c -o build/usb/dev.o $cc_flags
-#i686-elf-gcc -c src/usb/driver.c -o build/usb/driver.o $cc_flags
-#i686-elf-gcc -c src/usb/ehci.c -o build/usb/ehci.o $cc_flags
-#i686-elf-gcc -c src/usb/uhci.c -o build/usb/uhci.o $cc_flags
-i686-elf-gcc -c src/gui/mouse_renderer.c -o build/gui/mouse_renderer.o $cc_flags
-i686-elf-gcc -c src/gui/gui.c -o build/gui/gui.o $cc_flags
-i686-elf-gcc -c src/mc/f3f5.c -o build/mc/f3f5.o $cc_flags
-i686-elf-gcc -c src/mc/mcprotocol.c -o build/mc/mcprotocol.o $cc_flags
+mkdir -p build/video
+mkdir -p build/vfs
 
-objects="build/idt_s.o \
-                build/idt.o \
-                build/gpd.o \
+i686-elf-as     src/boot.s                 -o build/boot.o
+i686-elf-gcc -c src/kernel.c               -o build/kernel.o               $cc_flags
+i686-elf-gcc -c src/cpu/acpi.c             -o build/cpu/acpi.o             $cc_flags
+i686-elf-gcc -c src/cpu/gdt.c              -o build/cpu/gdt.o              $cc_flags
+i686-elf-as     src/cpu/gdt.s              -o build/cpu/gdt_s.o
+i686-elf-gcc -c src/cpu/idt.c              -o build/cpu/idt.o              $cc_flags
+i686-elf-as     src/cpu/idt.s              -o build/cpu/idt_s.o
+i686-elf-gcc -c src/cpu/io.c               -o build/cpu/io.o               $cc_flags
+i686-elf-gcc -c src/cpu/paging.c           -o build/cpu/paging.o           $cc_flags -O0
+i686-elf-gcc -c src/cpu/pic.c              -o build/cpu/pic.o              $cc_flags
+i686-elf-gcc -c src/dev/input/mouse.c      -o build/dev/input/mouse.o      $cc_flags
+i686-elf-gcc -c src/dev/net/intel.c        -o build/dev/net/intel.o        $cc_flags
+i686-elf-gcc -c src/dev/net/rtl8139.c      -o build/dev/net/rtl8139.o      $cc_flags
+i686-elf-gcc -c src/dev/storage/ide.c      -o build/dev/storage/ide.o      $cc_flags
+#i686-elf-gcc -c src/dev/usb/controller.c   -o build/dev/usb/controller.o   $cc_flags
+#i686-elf-gcc -c src/dev/usb/desc.c         -o build/dev/usb/desc.o         $cc_flags
+#i686-elf-gcc -c src/dev/usb/dev.c          -o build/dev/usb/dev.o          $cc_flags
+#i686-elf-gcc -c src/dev/usb/driver.c       -o build/dev/usb/driver.o       $cc_flags
+#i686-elf-gcc -c src/dev/usb/ehci.c         -o build/dev/usb/ehci.o         $cc_flags
+#i686-elf-gcc -c src/dev/usb/uhci.c         -o build/dev/usb/uhci.o         $cc_flags
+#i686-elf-gcc -c src/dev/usb/usb.c          -o build/dev/usb/usb.o          $cc_flags
+i686-elf-gcc -c src/dev/driver.c           -o build/dev/driver.o           $cc_flags
+i686-elf-gcc -c src/dev/pci.c              -o build/dev/pci.o              $cc_flags
+i686-elf-gcc -c src/lib/ctype.c            -o build/lib/ctype.o            $cc_flags
+i686-elf-gcc -c src/lib/kprintf.c          -o build/lib/kprintf.o          $cc_flags
+i686-elf-gcc -c src/lib/sleep.c            -o build/lib/sleep.o            $cc_flags
+i686-elf-gcc -c src/lib/stdlib.c           -o build/lib/stdlib.o           $cc_flags
+i686-elf-gcc -c src/lib/string.c           -o build/lib/string.o           $cc_flags
+i686-elf-gcc -c src/lib/terminal.c         -o build/lib/terminal.o         $cc_flags
+i686-elf-gcc -c src/lib/tga.c              -o build/lib/tga.o              $cc_flags
+i686-elf-gcc -c src/lib/time.c             -o build/lib/time.o             $cc_flags
+#i686-elf-gcc -c src/mc/f3f5.c              -o build/mc/f3f5.o              $cc_flags
+#i686-elf-gcc -c src/mc/mcprotocol.c        -o build/mc/mcprotocol.o        $cc_flags
+i686-elf-gcc -c src/misc/psf_font.c        -o build/misc/psf_font.o        $cc_flags
+i686-elf-gcc -c src/net/addr.c             -o build/net/addr.o             $cc_flags
+i686-elf-gcc -c src/net/arp.c              -o build/net/arp.o              $cc_flags
+i686-elf-gcc -c src/net/buf.c              -o build/net/buf.o              $cc_flags
+i686-elf-gcc -c src/net/checksum.c         -o build/net/checksum.o         $cc_flags
+i686-elf-gcc -c src/net/dhcp.c             -o build/net/dhcp.o             $cc_flags
+i686-elf-gcc -c src/net/dns.c              -o build/net/dns.o              $cc_flags
+i686-elf-gcc -c src/net/eth.c              -o build/net/eth.o              $cc_flags
+i686-elf-gcc -c src/net/icmp.c             -o build/net/icmp.o             $cc_flags
+i686-elf-gcc -c src/net/intf.c             -o build/net/intf.o             $cc_flags
+i686-elf-gcc -c src/net/ipv4.c             -o build/net/ipv4.o             $cc_flags
+i686-elf-gcc -c src/net/loopback.c         -o build/net/loopback.o         $cc_flags
+i686-elf-gcc -c src/net/net.c              -o build/net/net.o              $cc_flags
+i686-elf-gcc -c src/net/ntp.c              -o build/net/ntp.o              $cc_flags
+i686-elf-gcc -c src/net/port.c             -o build/net/port.o             $cc_flags
+i686-elf-gcc -c src/net/route.c            -o build/net/route.o            $cc_flags
+i686-elf-gcc -c src/net/tcp.c              -o build/net/tcp.o              $cc_flags
+i686-elf-gcc -c src/net/udp.c              -o build/net/udp.o              $cc_flags
+i686-elf-gcc -c src/sys/heap.c             -o build/sys/heap.o             $cc_flags -O0
+i686-elf-gcc -c src/sys/isrs.c             -o build/sys/isrs.o             $cc_flags -mgeneral-regs-only -Wno-unused-parameter
+i686-elf-gcc -c src/sys/kernel_mem.c       -o build/sys/kernel_mem.o       $cc_flags -O0
+i686-elf-gcc -c src/sys/panic.c            -o build/sys/panic.o            $cc_flags
+i686-elf-gcc -c src/sys/pit.c              -o build/sys/pit.o              $cc_flags
+i686-elf-gcc -c src/sys/rtc.c              -o build/sys/rtc.o              $cc_flags
+i686-elf-gcc -c src/sys/syscall.c          -o build/sys/syscall.o          $cc_flags -mgeneral-regs-only
+i686-elf-gcc -c src/video/graphics.c       -o build/video/graphics.o       $cc_flags
+i686-elf-gcc -c src/video/lfb.c            -o build/video/lfb.o            $cc_flags
+i686-elf-gcc -c src/video/lfb_terminal.c   -o build/video/lfb_terminal.o   $cc_flags
+i686-elf-gcc -c src/video/mouse_renderer.c -o build/video/mouse_renderer.o $cc_flags
+i686-elf-gcc -c src/video/vga_terminal.c   -o build/video/vga_terminal.o   $cc_flags
+i686-elf-gcc -c mishavfs/vfs.c             -o build/vfs/vfs.o              $cc_flags
+
+objects="
+                build/sys/kernel_mem.o \
+                build/cpu/idt_s.o \
+                build/cpu/idt.o \
+                build/cpu/gdt_s.o \
+                build/cpu/gdt.o \
+                build/cpu/io.o \
+                build/cpu/pic.o \
+                build/cpu/acpi.o \
+                build/cpu/paging.o \
                 build/boot.o \
                 build/kernel.o \
-                build/terminal.o \
-                build/gdt_s.o \
-                build/gdt.o \
-                build/isrs.o \
-                build/panic.o \
-                build/string.o \
-                build/io.o \
-                build/pic.o \
-                build/acpi.o \
-                build/stdlib.o \
-                build/pci.o \
-                build/driver.o \
-                build/ide.o \
-                build/vfs.o \
-                build/vga_terminal.o \
-                build/lfb.o \
-                build/psf_font.o \
-                build/lfb_terminal.o \
-                build/tga.o \
-                build/mouse.o \
-                build/sleep.o \
-                build/pit.o \
-                build/paging.o \
-                build/heap.o \
-                build/ctype.o \
-                build/time.o \
-                build/rtc.o \
-                build/kprintf.o \
+                build/sys/isrs.o \
+                build/sys/panic.o \
+                build/sys/rtc.o \
+                build/sys/pit.o \
+                build/sys/heap.o \
                 build/sys/syscall.o \
+                build/lib/terminal.o \
+                build/lib/string.o \
+                build/lib/stdlib.o \
+                build/lib/tga.o \
+                build/lib/sleep.o \
+                build/lib/ctype.o \
+                build/lib/time.o \
+                build/lib/kprintf.o \
+                build/misc/psf_font.o \
+                build/dev/pci.o \
+                build/dev/driver.o \
+                build/dev/storage/ide.o \
+                build/dev/net/intel.o \
+                build/dev/net/rtl8139.o \
+                build/dev/input/mouse.o \
                 build/net/addr.o \
                 build/net/buf.o \
                 build/net/eth.o \
@@ -127,12 +136,13 @@ objects="build/idt_s.o \
                 build/net/ntp.o \
                 build/net/tcp.o \
                 build/net/icmp.o \
-                build/net/driver/intel.o \
-                build/net/driver/rtl8139.o \
-                build/gui/mouse_renderer.o \
-                build/gui/gui.o \
-                build/mc/f3f5.o \
-                build/mc/mcprotocol.o"
+                build/video/mouse_renderer.o \
+                build/video/graphics.o
+                build/video/lfb_terminal.o \
+                build/video/vga_terminal.o \
+                build/video/lfb.o \
+                build/vfs/vfs.o \
+                "
 
 i686-elf-gcc -T linker.ld -o build/mishaos.bin -ffreestanding -O2 -nostdlib $objects -lgcc
 

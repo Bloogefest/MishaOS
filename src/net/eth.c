@@ -1,11 +1,11 @@
 #include "eth.h"
 
-#include "net.h"
-#include "arp.h"
-#include "ipv4.h"
-#include "in.h"
-#include "../kprintf.h"
-#include "../stdlib.h"
+#include <net/net.h>
+#include <net/arp.h>
+#include <net/ipv4.h>
+#include <net/in.h>
+#include <lib/kprintf.h>
+#include <lib/stdlib.h>
 
 static uint8_t eth_decode(eth_packet_t* eth, net_buf_t* packet) {
     if (packet->start + sizeof(eth_header_t) > packet->end) {

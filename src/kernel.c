@@ -1,32 +1,32 @@
 #include "kernel.h"
-#include "kprintf.h"
-#include "vga_terminal.h"
-#include "lfb_terminal.h"
-#include "lfb.h"
-#include "tga.h"
-#include "gdt.h"
-#include "tss.h"
-#include "idt.h"
-#include "isrs.h"
-#include "pic.h"
-#include "acpi.h"
-#include "panic.h"
-#include "pci.h"
-#include "multiboot.h"
-#include "ide.h"
-#include "string.h"
-#include "mouse.h"
-#include "gpd.h"
-#include "pit.h"
-#include "paging.h"
-#include "heap.h"
-#include "sys/syscall.h"
-#include "net/net.h"
-#include "net/intf.h"
-#include "gui/mouse_renderer.h"
-#include "gui/gui.h"
 
-#include "../mishavfs/vfs.h"
+#include <lib/kprintf.h>
+#include <lib/tga.h>
+#include <lib/string.h>
+#include <cpu/gdt.h>
+#include <cpu/tss.h>
+#include <cpu/idt.h>
+#include <cpu/pic.h>
+#include <cpu/acpi.h>
+#include <cpu/paging.h>
+#include <dev/pci.h>
+#include <dev/storage/ide.h>
+#include <dev/input/mouse.h>
+#include <sys/kernel_mem.h>
+#include <sys/panic.h>
+#include <sys/pit.h>
+#include <sys/heap.h>
+#include <sys/isrs.h>
+#include <sys/syscall.h>
+#include <net/net.h>
+#include <net/intf.h>
+#include <video/mouse_renderer.h>
+#include <video/graphics.h>
+#include <video/vga_terminal.h>
+#include <video/lfb_terminal.h>
+#include <video/lfb.h>
+#include <multiboot.h>
+#include <vfs.h>
 
 kernel_func_info_t* kernel_funcs = 0;
 
@@ -264,7 +264,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
 
     for (;;) {
         mouse_handle_packet();
-        gui_redraw();
+        graphics_redraw();
         net_poll();
     }
 }

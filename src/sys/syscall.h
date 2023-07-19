@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../isrs.h"
+#include <sys/isrs.h>
 
 #define SYS_PRINT 1
 

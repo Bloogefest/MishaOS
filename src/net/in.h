@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <stdint.h>
 
 static inline uint16_t net_swap16(uint16_t s) {

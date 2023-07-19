@@ -1,9 +1,9 @@
 #include "mcprotocol.h"
 
-#include "../heap.h"
-#include "../stdlib.h"
-#include "../string.h"
-#include "../kprintf.h"
+#include <sys/heap.h>
+#include <lib/stdlib.h>
+#include <lib/string.h>
+#include <lib/kprintf.h>
 
 #define RX_BUF_SIZE 16384
 

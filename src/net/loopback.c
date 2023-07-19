@@ -1,10 +1,10 @@
 #include "loopback.h"
 
-#include "arp.h"
-#include "eth.h"
-#include "ipv4.h"
-#include "intf.h"
-#include "route.h"
+#include <net/arp.h>
+#include <net/eth.h>
+#include <net/ipv4.h>
+#include <net/intf.h>
+#include <net/route.h>
 
 static void loop_poll(net_intf_t* intf) {
     // Nothing to do.

@@ -1,7 +1,7 @@
 #include "addr.h"
 
-#include "../stdlib.h"
-#include "../string.h"
+#include <lib/stdlib.h>
+#include <lib/string.h>
 
 const eth_addr_t eth_null_addr = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
 const eth_addr_t eth_broadcast_addr = {{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};

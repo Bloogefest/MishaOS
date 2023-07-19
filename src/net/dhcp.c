@@ -1,16 +1,16 @@
 #include "dhcp.h"
 
-#include "net.h"
-#include "ntp.h"
-#include "dns.h"
-#include "buf.h"
-#include "route.h"
-#include "in.h"
-#include "udp.h"
-#include "port.h"
-#include "../kprintf.h"
-#include "../string.h"
-#include "../stdlib.h"
+#include <net/net.h>
+#include <net/ntp.h>
+#include <net/dns.h>
+#include <net/buf.h>
+#include <net/route.h>
+#include <net/in.h>
+#include <net/udp.h>
+#include <net/port.h>
+#include <lib/kprintf.h>
+#include <lib/string.h>
+#include <lib/stdlib.h>
 
 #define OP_REQUEST 1
 #define OP_REPLY 2

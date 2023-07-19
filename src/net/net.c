@@ -1,9 +1,9 @@
 #include "net.h"
 
-#include "arp.h"
-#include "loopback.h"
-#include "dhcp.h"
-#include "tcp.h"
+#include <net/arp.h>
+#include <net/loopback.h>
+#include <net/dhcp.h>
+#include <net/tcp.h>
 
 uint8_t net_trace;
 

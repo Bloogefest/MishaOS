@@ -1,6 +1,6 @@
 #include "syscall.h"
 
-#include "../kprintf.h"
+#include <lib/kprintf.h>
 
 static int sys_print(const char* str) {
     if (!str) {

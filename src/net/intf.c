@@ -1,7 +1,7 @@
 #include "intf.h"
 
-#include "../gpd.h"
-#include "../string.h"
+#include <sys/kernel_mem.h>
+#include <lib/string.h>
 
 net_intf_t* net_intf_list = 0;
 static net_intf_t* net_intf_last = 0;

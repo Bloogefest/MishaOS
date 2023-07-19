@@ -1,7 +1,7 @@
 #pragma once
 
-#include "addr.h"
-#include "intf.h"
+#include <net/addr.h>
+#include <net/intf.h>
 
 typedef struct arp_header_s {
     uint16_t htype;

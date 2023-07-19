@@ -1,15 +1,15 @@
 #include "ipv4.h"
 
-#include "net.h"
-#include "in.h"
-#include "eth.h"
-#include "checksum.h"
-#include "route.h"
-#include "udp.h"
-#include "tcp.h"
-#include "icmp.h"
-#include "../kprintf.h"
-#include "../stdlib.h"
+#include <net/net.h>
+#include <net/in.h>
+#include <net/eth.h>
+#include <net/checksum.h>
+#include <net/route.h>
+#include <net/udp.h>
+#include <net/tcp.h>
+#include <net/icmp.h>
+#include <lib/kprintf.h>
+#include <lib/stdlib.h>
 
 void ipv4_recv(net_intf_t* intf, net_buf_t* packet) {
     ipv4_dump(packet);

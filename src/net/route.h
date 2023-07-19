@@ -1,6 +1,6 @@
 #pragma once
 
-#include "intf.h"
+#include <net/intf.h>
 
 typedef struct net_route_s {
     struct net_route_s* next;

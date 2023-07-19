@@ -1,13 +1,13 @@
 #include "dns.h"
 
-#include "buf.h"
-#include "port.h"
-#include "in.h"
-#include "udp.h"
-#include "../gpd.h"
-#include "../kprintf.h"
-#include "../stdlib.h"
-#include "../string.h"
+#include <net/buf.h>
+#include <net/port.h>
+#include <net/in.h>
+#include <net/udp.h>
+#include <sys/kernel_mem.h>
+#include <lib/kprintf.h>
+#include <lib/stdlib.h>
+#include <lib/string.h>
 
 ipv4_addr_t dns_server;
 

@@ -2,7 +2,8 @@
 *.raw
 *.img
 build/
-src/usb
+src/dev/usb
 mishaboot/eboot/ovmf/
 initrd/.funcs
 CMakeLists.txt
+*.a

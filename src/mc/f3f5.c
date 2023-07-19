@@ -1,11 +1,11 @@
 #include "f3f5.h"
 
-#include "mcprotocol.h"
-#include "../net/dns.h"
-#include "../kprintf.h"
-#include "../string.h"
-#include "../stdlib.h"
-#include "../pit.h"
+#include <mc/mcprotocol.h>
+#include <net/dns.h>
+#include <lib/kprintf.h>
+#include <lib/string.h>
+#include <lib/stdlib.h>
+#include <sys/pit.h>
 
 static const char* HOST = "game.f3f5.xyz";
 static const uint16_t PORT = 55232;

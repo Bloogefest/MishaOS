@@ -1,6 +1,6 @@
 #pragma once
 
-#include "intf.h"
+#include <net/intf.h>
 
 void dhcp_recv(net_intf_t* intf, const net_buf_t* packet);
 void dhcp_discover(net_intf_t* intf);

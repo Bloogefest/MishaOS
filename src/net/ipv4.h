@@ -1,6 +1,6 @@
 #pragma once
 
-#include "intf.h"
+#include <net/intf.h>
 
 #define IP_PROTOCOL_ICMP 1
 #define IP_PROTOCOL_TCP 6
