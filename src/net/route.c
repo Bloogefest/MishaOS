@@ -1,8 +1,8 @@
 #include "route.h"
 
-#include "../gpd.h"
-#include "../string.h"
-#include "../kprintf.h"
+#include <sys/kernel_mem.h>
+#include <lib/string.h>
+#include <lib/kprintf.h>
 
 static net_route_t* route_list = 0;
 

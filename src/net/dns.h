@@ -1,6 +1,6 @@
 #pragma once
 
-#include "intf.h"
+#include <net/intf.h>
 
 typedef struct dns_header_s {
     uint16_t id;

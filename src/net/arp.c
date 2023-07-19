@@ -1,10 +1,10 @@
 #include "arp.h"
 
-#include "in.h"
-#include "eth.h"
-#include "../kprintf.h"
-#include "../stdlib.h"
-#include "../string.h"
+#include <net/in.h>
+#include <net/eth.h>
+#include <lib/kprintf.h>
+#include <lib/stdlib.h>
+#include <lib/string.h>
 
 #define ARP_HTYPE_ETH 0x01
 

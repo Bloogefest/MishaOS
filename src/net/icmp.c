@@ -1,8 +1,8 @@
 #include "icmp.h"
 
-#include "checksum.h"
-#include "../string.h"
-#include "../kprintf.h"
+#include <net/checksum.h>
+#include <lib/string.h>
+#include <lib/kprintf.h>
 
 static void icmp_dump(const net_buf_t* packet) {
 #ifndef NET_DEBUG

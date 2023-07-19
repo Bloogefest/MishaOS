@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "intf.h"
+#include <net/intf.h>
 
 #define ET_IPV4 0x0800
 #define ET_ARP 0x806

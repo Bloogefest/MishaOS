@@ -1,13 +1,13 @@
 #include "ntp.h"
 
-#include "buf.h"
-#include "net.h"
-#include "port.h"
-#include "in.h"
-#include "udp.h"
-#include "../kprintf.h"
-#include "../stdlib.h"
-#include "../rtc.h"
+#include <net/buf.h>
+#include <net/net.h>
+#include <net/port.h>
+#include <net/in.h>
+#include <net/udp.h>
+#include <lib/kprintf.h>
+#include <lib/stdlib.h>
+#include <sys/rtc.h>
 
 #define NTP_VERSION 4
 #define UNIX_EPOCH 0x83AA7E80

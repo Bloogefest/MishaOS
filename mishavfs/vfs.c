@@ -1,6 +1,10 @@
 #include "vfs.h"
 
+#ifdef MISHAOS_KERNEL
+#include <lib/string.h>
+#else
 #include <string.h>
+#endif
 
 static inline vfs_entry_t* vfs_get_entry(vfs_filesystem_t* fs, uint32_t offset) {
     return (vfs_entry_t*) (fs->data + offset);

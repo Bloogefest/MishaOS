@@ -1,17 +1,17 @@
 #include "tcp.h"
 
-#include "buf.h"
-#include "checksum.h"
-#include "ipv4.h"
-#include "port.h"
-#include "route.h"
-#include "in.h"
-#include "../pit.h"
-#include "../rtc.h"
-#include "../gpd.h"
-#include "../stdlib.h"
-#include "../string.h"
-#include "../kprintf.h"
+#include <net/buf.h>
+#include <net/checksum.h>
+#include <net/ipv4.h>
+#include <net/port.h>
+#include <net/route.h>
+#include <net/in.h>
+#include <sys/pit.h>
+#include <sys/rtc.h>
+#include <sys/kernel_mem.h>
+#include <lib/stdlib.h>
+#include <lib/string.h>
+#include <lib/kprintf.h>
 
 static uint32_t base_isn;
 static tcp_conn_t* free_conn_list;

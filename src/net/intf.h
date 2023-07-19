@@ -1,7 +1,7 @@
 #pragma once
 
-#include "addr.h"
-#include "buf.h"
+#include <net/addr.h>
+#include <net/buf.h>
 
 typedef struct net_intf_s {
     struct net_intf_s* prev;

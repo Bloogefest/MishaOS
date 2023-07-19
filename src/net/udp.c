@@ -1,14 +1,14 @@
 #include "udp.h"
 
-#include "dhcp.h"
-#include "ipv4.h"
-#include "net.h"
-#include "in.h"
-#include "port.h"
-#include "dns.h"
-#include "ntp.h"
-#include "../kprintf.h"
-#include "../stdlib.h"
+#include <net/dhcp.h>
+#include <net/ipv4.h>
+#include <net/net.h>
+#include <net/in.h>
+#include <net/port.h>
+#include <net/dns.h>
+#include <net/ntp.h>
+#include <lib/kprintf.h>
+#include <lib/stdlib.h>
 
 void udp_recv(net_intf_t* intf, const ipv4_header_t* ip_header, net_buf_t* packet) {
     udp_dump(packet);

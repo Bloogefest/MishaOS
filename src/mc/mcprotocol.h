@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../net/tcp.h"
+#include <net/tcp.h>
 #include <stdint.h>
 
 // --------------------- CLIENTBOUND STATUS --------------------- //

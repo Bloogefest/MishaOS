@@ -1,6 +1,6 @@
 #include "buf.h"
 
-#include "../paging.h"
+#include <cpu/paging.h>
 
 extern pfa_t pfa;
 
