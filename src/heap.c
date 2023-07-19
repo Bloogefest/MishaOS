@@ -15,9 +15,59 @@ static void* heap_start;
 static void* heap_end;
 static heap_seg_hdr_t* last_header;
 
-static void heap_combine_forward(heap_seg_hdr_t* seg);
-static void heap_combine_backward(heap_seg_hdr_t* seg);
-static heap_seg_hdr_t* heap_combine_split(heap_seg_hdr_t* seg, size_t length);
+void heap_combine_forward(heap_seg_hdr_t* seg) {
+    if (seg->next == 0) {
+        return;
+    }
+
+    if (!seg->next->free) {
+        return;
+    }
+
+    if (seg->next == last_header) {
+        last_header = seg;
+    }
+
+    if (seg->next->next != 0) {
+        seg->next->next->last = seg;
+    }
+
+    seg->length += seg->next->length + sizeof(heap_seg_hdr_t);
+}
+
+void heap_combine_backward(heap_seg_hdr_t* seg) {
+    if (seg->last != 0 && seg->last->free) {
+        heap_combine_forward(seg->last);
+    }
+}
+
+heap_seg_hdr_t* heap_combine_split(heap_seg_hdr_t* seg, size_t length) {
+    if (length < 0x10) {
+        return 0;
+    }
+
+    int split_seg_length = seg->length - length - sizeof(heap_seg_hdr_t);
+    if (split_seg_length < 0x10) {
+        return 0;
+    }
+
+    heap_seg_hdr_t* new_header = (heap_seg_hdr_t*) ((size_t) seg + length + sizeof(heap_seg_hdr_t));
+    if (seg->next) {
+        seg->next->last = new_header;
+    }
+    new_header->next = seg->next;
+    seg->next = new_header;
+    new_header->last = seg;
+    new_header->length = split_seg_length;
+    new_header->free = seg->free;
+    seg->length = length;
+
+    if (last_header == seg) {
+        last_header = new_header;
+    }
+
+    return new_header;
+}
 
 void heap_init(void* heap_address, size_t page_count) {
     void* virtual_address = heap_address;
@@ -98,56 +148,4 @@ void free(void* address) {
     segment->free = 1;
     heap_combine_forward(segment);
     heap_combine_backward(segment);
-}
-
-static void heap_combine_forward(heap_seg_hdr_t* seg) {
-    if (seg->next == 0) {
-        return;
-    }
-
-    if (!seg->next->free) {
-        return;
-    }
-
-    if (seg->next == last_header) {
-        last_header = seg;
-    }
-
-    if (seg->next->next != 0) {
-        seg->next->next->last = seg;
-    }
-
-    seg->length += seg->next->length + sizeof(heap_seg_hdr_t);
-}
-
-static void heap_combine_backward(heap_seg_hdr_t* seg) {
-    if (seg->last != 0 && seg->last->free) {
-        heap_combine_forward(seg->last);
-    }
-}
-
-static heap_seg_hdr_t* heap_combine_split(heap_seg_hdr_t* seg, size_t length) {
-    if (length < 0x10) {
-        return 0;
-    }
-
-    int split_seg_length = seg->length - length - sizeof(heap_seg_hdr_t);
-    if (split_seg_length < 0x10) {
-        return 0;
-    }
-
-    heap_seg_hdr_t* new_header = (heap_seg_hdr_t*) ((size_t) seg + length + sizeof(heap_seg_hdr_t));
-    seg->next->last = new_header;
-    new_header->next = seg->next;
-    seg->next = new_header;
-    new_header->last = seg;
-    new_header->length = split_seg_length;
-    new_header->free = seg->free;
-    seg->length = length;
-
-    if (last_header == seg) {
-        last_header = new_header;
-    }
-
-    return new_header;
 }

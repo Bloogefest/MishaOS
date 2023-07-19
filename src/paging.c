@@ -10,9 +10,7 @@ uint8_t initialized = 0;
 static uint32_t page_index = 0;
 
 static void pfa_reserve_page(pfa_t* pfa, void* address);
-static void pfa_unreserve_page(pfa_t* pfa, void* address);
 static void pfa_reserve_pages(pfa_t* pfa, void* address, uint32_t count);
-static void pfa_unreserve_pages(pfa_t* pfa, void* address, uint32_t count);
 
 void pfa_read_memory_map(pfa_t* pfa, struct multiboot* multiboot, kernel_meminfo_t* meminfo, uint32_t initrd_start, uint32_t initrd_end) {
     if (initialized) {
@@ -170,30 +168,9 @@ static void pfa_reserve_page(pfa_t* pfa, void* address) {
     }
 }
 
-static void pfa_unreserve_page(pfa_t* pfa, void* address) {
-    uint32_t index = (uint32_t) address / 0x1000;
-    if (!pfa_get_bit(pfa, index)) {
-        return;
-    }
-
-    if (pfa_set_bit(pfa, index, 0)) {
-        free_memory += 0x1000;
-        reserved_memory -= 0x1000;
-        if (page_index > index) {
-            page_index = index;
-        }
-    }
-}
-
 static void pfa_reserve_pages(pfa_t* pfa, void* address, uint32_t count) {
     for (uint32_t i = 0; i < count; i++) {
         pfa_reserve_page(pfa, (void*) ((uint32_t) address + i * 0x1000));
-    }
-}
-
-static void pfa_unreserve_pages(pfa_t* pfa, void* address, uint32_t count) {
-    for (uint32_t i = 0; i < count; i++) {
-        pfa_unreserve_page(pfa, (void*) ((uint32_t) address + i * 0x1000));
     }
 }
 

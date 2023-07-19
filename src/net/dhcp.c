@@ -233,7 +233,7 @@ static void dhcp_ack(net_intf_t* intf, const dhcp_header_t* header, const dhcp_o
     const ipv4_addr_t ntp_server = {{216, 239, 35, 0}};
     ntp_send(&ntp_server);
 
-    net_post_init();
+    net_post_init(intf);
 }
 
 void dhcp_recv(net_intf_t* intf, const net_buf_t* packet) {

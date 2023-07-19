@@ -85,7 +85,7 @@ int kvprintf(const char* format, va_list list) {
         uint8_t space_no_sign = 0;
         uint8_t alt_form = 0;
         uint8_t plus_sign = 0;
-        uint8_t emode = 0;
+        // uint8_t emode = 0;
         int expo = 0;
 
         if (format[i] == '%') {
@@ -190,6 +190,7 @@ int kvprintf(const char* format, va_list list) {
             switch (specifier) {
                 case 'X':
                     base = 16;
+                    __attribute__((fallthrough));
 
                 case 'x':
                     base = base == 10 ? 17 : base;
@@ -197,6 +198,7 @@ int kvprintf(const char* format, va_list list) {
                         terminal_putstring("0x");
                         chars += 2;
                     }
+                    __attribute__((fallthrough));
 
                 case 'u': {
                     switch (length) {
@@ -406,7 +408,7 @@ int kvprintf(const char* format, va_list list) {
 
                 case 'e':
                 case 'E':
-                    emode = 1;
+                    // emode = 1;
 
                 case 'f':
                 case 'F':

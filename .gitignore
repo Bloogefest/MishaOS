@@ -4,4 +4,5 @@
 build/
 src/usb
 mishaboot/eboot/ovmf/
+initrd/.funcs
 CMakeLists.txt

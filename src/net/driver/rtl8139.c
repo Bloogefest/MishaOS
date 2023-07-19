@@ -26,8 +26,6 @@ static uint8_t tsd_array[4] = {0x10, 0x14, 0x18, 0x1C};
 
 extern page_directory_t page_directory;
 
-static net_buf_t* packet_buf;
-
 static uint8_t read_mac_address() {
     uint32_t value = inl(device.io_base);
     device.mac_address.address[0] = (uint8_t) value;
@@ -41,7 +39,6 @@ static uint8_t read_mac_address() {
 }
 
 void rtl8139_send(net_buf_t* buf) {
-    puts("tx");
     uint32_t phys_addr = (uint32_t) pde_get_phys_addr(&page_directory, buf->start);
 
     outl(device.io_base + tsad_array[device.tx_cur], phys_addr);
@@ -64,7 +61,7 @@ void rtl8139_irq_handler(struct interrupt_frame* frame) {
         outw(device.io_base + 0x3E, 1 << 2);
     }
 
-    if (status & (1 << 0)) {
+    if (status & (1 << 0)) { // TODO: Rewrite receive handler
         uint8_t* rx_pointer = device.rx_buffer + rx_offset;
 
         net_buf_t* current_buf = net_alloc_buf();
@@ -78,7 +75,7 @@ void rtl8139_irq_handler(struct interrupt_frame* frame) {
             device.rx_bufs = current_buf;
         }
 
-        uint16_t length = *(uint16_t*) (rx_pointer + 2);
+        uint16_t length = *(uint16_t*)(rx_pointer + 2);
         outw(device.io_base + 0x3E, 1 << 0);
         memcpy(current_buf->start, rx_pointer + 4, length);
         current_buf->end = current_buf->start + length;
@@ -92,7 +89,7 @@ void rtl8139_irq_handler(struct interrupt_frame* frame) {
     asm("sti");
 }
 
-void rtl8139_poll(net_intf_t* intf) {
+void rtl8139_poll(net_intf_t* intf) { // TODO: Rewrite polling
     if (!device.rx_bufs) {
         return;
     }
@@ -124,7 +121,6 @@ void rtl8139_poll(net_intf_t* intf) {
 }
 
 void rtl8139_driver_init(pci_device_info_t* info, uint32_t bus, uint32_t dev, uint32_t func) {
-    return; // TODO: It kinda works... but Page Fault/Double Fault occurs for some reason
     if (info->vendor_id != 0x10EC) {
         return;
     }
@@ -150,8 +146,6 @@ void rtl8139_driver_init(pci_device_info_t* info, uint32_t bus, uint32_t dev, ui
     uint32_t pci_status = pci_read32(id, PCI_CONFIG_COMMAND);
     pci_status |= 4;
     pci_write32(id, PCI_CONFIG_COMMAND, pci_status);
-
-    packet_buf = net_alloc_buf();
 
     device.tx_cur = 0;
     rx_offset = 0;
@@ -185,7 +179,7 @@ void rtl8139_driver_init(pci_device_info_t* info, uint32_t bus, uint32_t dev, ui
 
     char str[20];
     ethtoa(&device.mac_address, str);
-    kprintf("MAC address: %s\n",str);
+    kprintf("MAC address: %s\n", str);
 
     net_intf_t* intf = net_intf_create();
     intf->eth_addr = device.mac_address;

@@ -1,11 +1,9 @@
 #include "ide.h"
 #include "io.h"
-#include "kprintf.h"
-#include "stdlib.h"
 
 uint8_t ide_buf[2048] = {0};
 static volatile uint8_t ide_irq_invoked = 0;
-static uint8_t atapi_packet[12] = {0xA8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+// static uint8_t atapi_packet[12] = {0xA8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 ide_channel_regs_t channels[2];
 ide_device_t ide_devices[4];
 

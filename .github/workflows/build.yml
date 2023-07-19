@@ -11,6 +11,8 @@ jobs:
           submodules: true
       - name: Install mtools, nasm, mkisofs
         run: sudo apt install mtools nasm mkisofs
+      - name: Install pyelftools
+        run: pip3 install pyelftools
       - name: Install i686-elf-tools
         run: wget https://github.com/lordmilko/i686-elf-tools/releases/download/7.1.0/i686-elf-tools-linux.zip -O ~/elf-tools.zip && mkdir -p ~/i686-elf-tools && unzip ~/elf-tools.zip -d ~/i686-elf-tools
       - name: Install x86_64-elf-tools

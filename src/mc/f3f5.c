@@ -7,8 +7,8 @@
 #include "../stdlib.h"
 #include "../pit.h"
 
-static const char* HOST = "game.f3f5.online";
-static const uint16_t PORT = 25607;
+static const char* HOST = "game.f3f5.xyz";
+static const uint16_t PORT = 55232;
 
 static ipv4_addr_t addr;
 
@@ -123,8 +123,7 @@ void f3f5_tcp_connect(void* ctx, const char* host, const net_buf_t* buf) {
     tcp_connect(conn, &addr, PORT);
 }
 
-void f3f5_connect() {
-    return;
+void f3f5_connect(net_intf_t* intf) {
     mc_init();
 
     mc_status_handlers[0x00] = f3f5_handle_status_response;
