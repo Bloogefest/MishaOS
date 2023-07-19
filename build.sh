@@ -45,6 +45,7 @@ i686-elf-gcc -c src/ctype.c -o build/ctype.o $cc_flags
 i686-elf-gcc -c src/time.c -o build/time.o $cc_flags
 i686-elf-gcc -c src/rtc.c -o build/rtc.o $cc_flags
 i686-elf-gcc -c src/kprintf.c -o build/kprintf.o $cc_flags
+i686-elf-gcc -c src/sys/syscall.c -o build/sys/syscall.o $cc_flags -mgeneral-regs-only
 i686-elf-gcc -c src/net/addr.c -o build/net/addr.o $cc_flags
 i686-elf-gcc -c src/net/buf.c -o build/net/buf.o $cc_flags
 i686-elf-gcc -c src/net/eth.c -o build/net/eth.o $cc_flags
@@ -108,6 +109,7 @@ objects="build/idt_s.o \
                 build/time.o \
                 build/rtc.o \
                 build/kprintf.o \
+                build/sys/syscall.o \
                 build/net/addr.o \
                 build/net/buf.o \
                 build/net/eth.o \

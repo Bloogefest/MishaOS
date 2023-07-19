@@ -5,6 +5,7 @@
 #include "pic.h"
 #include "mouse.h"
 #include "pit.h"
+#include "sys/syscall.h"
 
 #define PERIPHERAL_HANDLER(id)                                   \
     __attribute__((interrupt))                                   \
@@ -143,6 +144,24 @@ void pit_isr(struct interrupt_frame* frame) {
     pit_tick();
     pic_master_eoi();
     asm("sti");
+}
+
+void syscall_handler() {
+    int eax;
+    int ebx;
+    int ecx;
+    int edx;
+    int esi;
+    int edi;
+
+    asm volatile(""
+                 : "=a"(eax), "=b"(ebx)
+                 , "=c"(ecx), "=d"(edx)
+                 , "=S"(esi), "=D"(edi));
+
+    syscall_handle(&eax, ebx, ecx, edx, esi, edi);
+
+    asm volatile("" : : "a"(eax));
 }
 
 PERIPHERAL_HANDLER(0)

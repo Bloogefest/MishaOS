@@ -20,6 +20,7 @@
 #include "pit.h"
 #include "paging.h"
 #include "heap.h"
+#include "sys/syscall.h"
 #include "net/net.h"
 #include "net/intf.h"
 #include "gui/mouse_renderer.h"
@@ -176,6 +177,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     idt_encode_entry(&idt[0x2A], (uint32_t) peripheral_handler1, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x2B], (uint32_t) peripheral_handler2, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x2C], (uint32_t) ps2_mouse_isr, 0x08, 0, 0xE);
+    idt_encode_entry(&idt[0x80], (uint32_t) syscall_handler, 0x08, 0, 0xE);
     idt_load(sizeof(idt) - 1, (uint32_t) &idt);
 
     puts("Initializing paging...");
@@ -250,6 +252,13 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     puts("Initializing networking...");
     net_post_init = net_post;
     net_init();
+
+    int ret;
+    __asm__ __volatile__("int $0x80" : "=a"(ret) : "0"(SYS_PRINT), "b"("syscall: SYS_PRINT\n"));
+
+    if (ret != 0) {
+        kprintf("error: syscall return code: %d.\n", ret);
+    }
 
     puts("Done. MishaOS loaded.");
 
