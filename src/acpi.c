@@ -81,7 +81,7 @@ void acpi_parse_xsdt(sdt_header_t* header) {
     uint64_t* it = (uint64_t*) (header + 1);
     uint64_t* end = (uint64_t*) ((uint8_t*) header + header->length);
     while (it < end) {
-        acpi_parse_dt((sdt_header_t*) *it++);
+        acpi_parse_dt((sdt_header_t*)(uintptr_t) *it++);
     }
 }
 

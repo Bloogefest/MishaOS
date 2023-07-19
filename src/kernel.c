@@ -142,9 +142,9 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
             puts(" version 2.0");
             rsdp2_t* rsdp2 = (rsdp2_t*) rsdp;
             if (rsdp2->xsdt_address) {
-                acpi_parse_xsdt((sdt_header_t*) rsdp2->xsdt_address);
+                acpi_parse_xsdt((sdt_header_t*)(uintptr_t) rsdp2->xsdt_address);
             } else {
-                acpi_parse_rsdt((sdt_header_t*) rsdp->rsdt_address);
+                acpi_parse_rsdt((sdt_header_t*)(uintptr_t) rsdp->rsdt_address);
             }
         } else {
             panic("[ACPI] Unsupported ACPI version");

@@ -1,5 +1,4 @@
 #include "pci.h"
-#include "stdlib.h"
 #include "kprintf.h"
 #include "io.h"
 #include "driver.h"
@@ -53,15 +52,7 @@ void pci_get_bar(pci_bar_t* bar, uint32_t id, uint32_t index) {
     uint32_t mask_low;
     pci_read_bar(id, index, &address_low, &mask_low);
 
-    if (address_low & PCI_BAR_64) {
-        uint32_t address_high;
-        uint32_t mask_high;
-        pci_read_bar(id, index + 1, &address_high, &mask_high);
-
-        bar->_.address = (void*) (((uint32_t) address_high << 32) | (address_low & ~0xF));
-        bar->size = ~(((uint64_t) mask_high << 32) | (mask_low & ~0xF)) + 1;
-        bar->flags = address_low & 0xF;
-    } else if (address_low & PCI_BAR_IO) {
+    if (address_low & PCI_BAR_IO) {
         bar->_.port = (uint16_t) (address_low & ~0x3);
         bar->size = (uint16_t) (~(mask_low & ~0x3) + 1);
         bar->flags = address_low & 0x3;

@@ -9,7 +9,9 @@
 #define TRACE_TRANSPORT (1 << 2)
 #define TRACE_APP (1 << 3)
 
-extern void(*net_post_init)(struct net_intf_t* intf);
+struct net_intf_s;
+
+extern void(*net_post_init)(struct net_intf_s* intf);
 extern uint8_t net_trace;
 
 void net_init();

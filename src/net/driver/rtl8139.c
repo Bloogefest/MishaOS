@@ -26,8 +26,6 @@ static uint8_t tsd_array[4] = {0x10, 0x14, 0x18, 0x1C};
 
 extern page_directory_t page_directory;
 
-static net_buf_t* packet_buf;
-
 static uint8_t read_mac_address() {
     uint32_t value = inl(device.io_base);
     device.mac_address.address[0] = (uint8_t) value;
@@ -63,7 +61,7 @@ void rtl8139_irq_handler(struct interrupt_frame* frame) {
         outw(device.io_base + 0x3E, 1 << 2);
     }
 
-    if (status & (1 << 0)) { // TODO: Rewrite receive hanlder
+    if (status & (1 << 0)) { // TODO: Rewrite receive handler
         uint8_t* rx_pointer = device.rx_buffer + rx_offset;
 
         net_buf_t* current_buf = net_alloc_buf();

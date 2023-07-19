@@ -2,7 +2,7 @@
 # TODO: Makefile
 set -e
 
-cc_flags="-std=gnu99 -ffreestanding -g -fno-omit-frame-pointer -Wall -O2 -Wextra -Imishavfs -Isrc"
+cc_flags="-std=gnu99 -ffreestanding -g -fno-omit-frame-pointer -Wall -O2 -Wextra -Imishavfs -Isrc -Wno-unused-parameter"
 
 # Build sources
 mkdir -p build
@@ -11,6 +11,7 @@ mkdir -p build/net/driver
 mkdir -p build/usb
 mkdir -p build/gui
 mkdir -p build/mc
+mkdir -p build/sys
 i686-elf-as src/boot.s -o build/boot.o
 i686-elf-gcc -c src/kernel.c -o build/kernel.o $cc_flags
 i686-elf-gcc -c src/terminal.c -o build/terminal.o $cc_flags
