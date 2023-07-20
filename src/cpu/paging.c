@@ -7,6 +7,8 @@ uint32_t reserved_memory;
 uint32_t used_memory;
 uint8_t initialized = 0;
 
+page_directory_t* current_page_directory = 0;
+
 static uint32_t page_index = 0;
 
 static void pfa_reserve_page(pfa_t* pfa, void* address);
@@ -201,10 +203,20 @@ uint32_t pfa_reserved_memory() {
 }
 
 void pde_init(page_directory_t* page_directory) {
-    page_directory->physical_address = (uint32_t) &page_directory->physical_tables;
+    void* ptr = &page_directory->physical_tables;
+    if (current_page_directory) {
+        ptr = pde_get_phys_addr(current_page_directory, ptr);
+    }
+
+    page_directory->physical_address = (uint32_t)(uintptr_t) ptr;
+    for (uint32_t i = 0; i < 1024; i++) {
+        if (page_directory->tables[i]) {
+            page_directory->physical_tables[i] = (uint32_t) page_directory->tables[i] | 0x07;
+        }
+    }
 }
 
-void pde_map_memory(page_directory_t* page_directory, pfa_t* pfa, void* virtual_mem, void* physical_mem) {
+page_t* pde_request_page(page_directory_t* page_directory, pfa_t* pfa, void* virtual_mem) {
     uint32_t address = (uint32_t) virtual_mem / 0x1000;
     uint32_t table_idx = address / 1024;
     if (!page_directory->tables[table_idx]) {
@@ -213,8 +225,20 @@ void pde_map_memory(page_directory_t* page_directory, pfa_t* pfa, void* virtual_
         page_directory->physical_tables[table_idx] = (uint32_t) page_directory->tables[table_idx] | 0x07;
     }
 
-    page_t* page = &page_directory->tables[table_idx]->entries[address % 1024];
+    return &page_directory->tables[table_idx]->entries[address % 1024];
+}
+
+void pde_map_memory(page_directory_t* page_directory, pfa_t* pfa, void* virtual_mem, void* physical_mem) {
+    page_t* page = pde_request_page(page_directory, pfa, virtual_mem);
     page->present = 1;
+    page->address = (uint32_t) physical_mem / 0x1000;
+}
+
+void pde_map_user_memory(page_directory_t* page_directory, pfa_t* pfa, void* virtual_mem, void* physical_mem) {
+    page_t* page = pde_request_page(page_directory, pfa, virtual_mem);
+    page->present = 1;
+    page->read_write = 1;
+    page->user_supervisor = 1;
     page->address = (uint32_t) physical_mem / 0x1000;
 }
 
@@ -228,6 +252,7 @@ void* pde_get_phys_addr(page_directory_t* page_directory, void* virtual_addr) {
 }
 
 void enable_paging(page_directory_t* page_directory) {
+    current_page_directory = page_directory;
     asm volatile("mov %0, %%cr3" : : "r"(page_directory->physical_address));
     uint32_t cr0;
     asm volatile("mov %%cr0, %0" : "=r"(cr0));

@@ -3,6 +3,7 @@
 #include <lib/kprintf.h>
 #include <lib/tga.h>
 #include <lib/string.h>
+#include <lib/elf.h>
 #include <cpu/gdt.h>
 #include <cpu/tss.h>
 #include <cpu/idt.h>
@@ -155,16 +156,16 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     }
 
     gdt_entry_t gdt[6];
-    tss_entry_t tss;
 
     puts("Loading GDT...");
     gdt_encode_entry(&gdt[0], 0, 0, 0, 0);
-    gdt_encode_entry(&gdt[1], 0, 0xFFFFF, 0x9A, 0xC);
-    gdt_encode_entry(&gdt[2], 0, 0xFFFFF, 0x92, 0xC);
-    gdt_encode_entry(&gdt[3], 0, 0xFFFFF, 0xFA, 0xC);
-    gdt_encode_entry(&gdt[4], 0, 0xFFFFF, 0xF2, 0xC);
-    gdt_encode_entry(&gdt[5], (uint32_t) &tss, sizeof(tss), 0x89, 0x0);
+    gdt_encode_entry(&gdt[1], 0, 0xFFFFFFFF, 0x9A, 0xCF);
+    gdt_encode_entry(&gdt[2], 0, 0xFFFFFFFF, 0x92, 0xCF);
+    gdt_encode_entry(&gdt[3], 0, 0xFFFFFFFF, 0xFA, 0xCF);
+    gdt_encode_entry(&gdt[4], 0, 0xFFFFFFFF, 0xF2, 0xCF);
+    tss_encode_entry(&gdt[5], 0x10, esp);
     gdt_load(sizeof(gdt) - 1, (uint32_t) &gdt);
+    tss_flush();
 
     puts("Loading IDT...");
     idt_entry_t idt[256];
@@ -177,7 +178,7 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     idt_encode_entry(&idt[0x2A], (uint32_t) peripheral_handler1, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x2B], (uint32_t) peripheral_handler2, 0x08, 0, 0xE);
     idt_encode_entry(&idt[0x2C], (uint32_t) ps2_mouse_isr, 0x08, 0, 0xE);
-    idt_encode_entry(&idt[0x80], (uint32_t) syscall_handler, 0x08, 0, 0xE);
+    idt_encode_entry(&idt[0x80], (uint32_t) syscall_handler, 0x08, 3, 0xE);
     idt_load(sizeof(idt) - 1, (uint32_t) &idt);
 
     puts("Initializing paging...");
@@ -259,6 +260,83 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     if (ret != 0) {
         kprintf("error: syscall return code: %d.\n", ret);
     }
+
+    // Userspace test
+    vfs_entry_t* bin_dir = vfs_find_entry(&initrd, "bin");
+    vfs_entry_t* exec_file = vfs_find_entry_in(&initrd, bin_dir, "hello");
+
+    uint8_t* exec_data = vfs_file_content(&initrd, exec_file, 0);
+    elf32_header_t* header = (elf32_header_t*) exec_data;
+
+    if (header->e_ident[0] != ELFMAG0 ||
+        header->e_ident[1] != ELFMAG1 ||
+        header->e_ident[2] != ELFMAG2 ||
+        header->e_ident[3] != ELFMAG3) {
+        panic("Invalid ELF32 magic value.");
+        return;
+    }
+
+    uintptr_t user_pd_address = (uintptr_t) malloc(sizeof(page_directory_t) + 4096);
+    if (user_pd_address & 0xFFF) {
+        user_pd_address &= ~0xFFF;
+        user_pd_address += 0x1000;
+    }
+
+    page_directory_t* user_pd = (page_directory_t*) user_pd_address;
+    memcpy(user_pd, current_page_directory, sizeof(page_directory_t));
+    pde_init(user_pd);
+
+    uintptr_t entry = (uintptr_t) header->e_entry;
+    for (uintptr_t i = 0; i < (uint32_t) header->e_phentsize * header->e_phnum; i += header->e_phentsize) {
+        elf32_phdr_t* phdr = (elf32_phdr_t*) (exec_data + header->e_phoff + i);
+        if (phdr->p_type == PT_LOAD) {
+            uint32_t pages = phdr->p_memsz / 0x1000;
+            if (phdr->p_memsz & 0xFFF) {
+                ++pages;
+            }
+
+            for (uint32_t i = 0; i < pages; i++) {
+                uint32_t offset = i * 4096;
+
+                void* page = pfa_request_page(&pfa);
+                memset(page, 0, 4096);
+                pde_map_user_memory(user_pd, &pfa, (void*)(uintptr_t)(phdr->p_vaddr + offset), page);
+
+                if (offset <= phdr->p_filesz) {
+                    uint32_t length = 4096;
+                    if (offset + length > phdr->p_filesz) {
+                        length = phdr->p_filesz - offset;
+                    }
+                    memcpy(page, exec_data + phdr->p_offset + offset, length);
+                }
+            }
+        }
+    }
+
+    for (uintptr_t stack_pointer = 0x10000000; stack_pointer < 0x10010000; stack_pointer += 0x1000) {
+        pde_map_user_memory(user_pd, &pfa, (void*) stack_pointer, pfa_request_page(&pfa));
+    }
+
+    enable_paging(user_pd);
+
+    asm volatile("mov %1, %%esp\n"
+                 "pushl $0x00\n"
+                 "mov $0x23, %%ax\n"
+                 "mov %%ax, %%ds\n"
+                 "mov %%ax, %%es\n"
+                 "mov %%ax, %%fs\n"
+                 "mov %%ax, %%gs\n"
+                 "mov %%esp, %%eax\n"
+                 "pushl $0x23\n"
+                 "pushl %%eax\n"
+                 "pushf\n"
+                 "popl %%eax\n"
+                 "orl $0x200, %%eax\n"
+                 "pushl %%eax\n"
+                 "pushl $0x1B\n"
+                 "pushl %0\n"
+                 "iret\n"
+                 : : "m"(entry), "r"(0x10010000) : "%ax", "%esp", "%eax");
 
     puts("Done. MishaOS loaded.");
 

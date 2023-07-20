@@ -39,7 +39,11 @@ typedef struct page_directory_s {
     uint32_t physical_address;
 } __attribute__((packed)) page_directory_t;
 
+extern page_directory_t* current_page_directory;
+
 void pde_init(page_directory_t* page_directory);
+page_t* pde_request_page(page_directory_t* page_directory, pfa_t* pfa, void* virtual_mem);
 void pde_map_memory(page_directory_t* page_directory, pfa_t* pfa, void* virtual_mem, void* physical_mem);
+void pde_map_user_memory(page_directory_t* page_directory, pfa_t* pfa, void* virtual_mem, void* physical_mem);
 void* pde_get_phys_addr(page_directory_t* page_directory, void* virtual_addr);
 void enable_paging(page_directory_t* page_directory);

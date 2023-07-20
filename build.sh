@@ -151,6 +151,24 @@ i686-elf-strip --strip-debug --strip-unneeded build/mishaos.bin
 
 python3 export_debug.py
 
+# Build libsyscall
+pushd libsyscall
+./build.sh
+popd
+
+# Build libc
+pushd libc
+./build.sh
+popd
+
+# Build userspace
+pushd userspace
+./build.sh
+popd
+
+rm -rf initrd/bin
+cp -r userspace/bin initrd/
+
 # Build mishavfs
 pushd mishavfs
 ./build.sh
