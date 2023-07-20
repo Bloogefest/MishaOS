@@ -267,7 +267,7 @@ void eth_intel_interrupt_handler(struct interrupt_frame* frame) {
         eth_intel_write_command(REG_CTRL, eth_intel_read_command(REG_CTRL) | ECTRL_SLU);
     }
 
-    pic_master_eoi();
+    pic_slave_eoi();
 }
 
 void intel_net_driver_init(pci_device_info_t* info, uint32_t bus, uint32_t dev, uint32_t func) {

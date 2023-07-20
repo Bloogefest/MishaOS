@@ -19,3 +19,4 @@ typedef struct kernel_func_info_s {
 extern kernel_func_info_t* kernel_funcs;
 
 const char* kernel_get_func_name(uintptr_t addr);
+void kernel_poll();
