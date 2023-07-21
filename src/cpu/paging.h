@@ -37,11 +37,15 @@ typedef struct page_directory_s {
     page_table_t* tables[1024];
     uint32_t physical_tables[1024];
     uint32_t physical_address;
+    void* unaligned_ptr;
 } __attribute__((packed)) page_directory_t;
 
 extern page_directory_t* current_page_directory;
 
 void pde_init(page_directory_t* page_directory);
+page_directory_t* pde_alloc();
+page_directory_t* pde_clone(page_directory_t* page_directory, pfa_t* pfa);
+void pde_free(page_directory_t* page_directory, pfa_t* pfa);
 page_t* pde_request_page(page_directory_t* page_directory, pfa_t* pfa, void* virtual_mem);
 void pde_map_memory(page_directory_t* page_directory, pfa_t* pfa, void* virtual_mem, void* physical_mem);
 void pde_map_user_memory(page_directory_t* page_directory, pfa_t* pfa, void* virtual_mem, void* physical_mem);

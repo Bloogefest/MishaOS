@@ -25,11 +25,7 @@ char* strcpy(char* dst, const char* src) {
 }
 
 void* memset(void* ptr, int value, size_t size) {
-    uint8_t* data = (uint8_t*) ptr;
-    for (size_t i = 0; i < size; i++) {
-        data[i] = value;
-    }
-
+    asm volatile("cld; rep stosb" : "+c"(size), "+D"(ptr) : "a"(value) : "memory");
     return ptr;
 }
 
@@ -122,9 +118,6 @@ int strcmp(const char* str1, const char* str2) {
 }
 
 void* memcpy(void* dst, const void* src, size_t n) {
-    for (size_t i = 0; i < n; i++) {
-        ((uint8_t*) dst)[i] = ((const uint8_t*) src)[i];
-    }
-
+    asm volatile("cld; rep movsb" : "+c"(n), "+S"(src), "+D"(dst) : : "memory");
     return dst;
 }

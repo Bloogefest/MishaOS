@@ -183,27 +183,46 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
 
     puts("Initializing paging...");
     pfa_read_memory_map(&pfa, multiboot, &meminfo, module_start, module_end);
-    pde_init(&page_directory);
 
+    // Lock pages
     for (uint32_t i = (uint32_t) double_framebuffer; i <= (uint32_t) double_framebuffer + lfb_height * lfb_width * 4; i += 0x1000) {
         pfa_lock_page(&pfa, (void*) i);
-        pde_map_memory(&page_directory, &pfa, (void*) i, (void*) i);
     }
 
     for (uint32_t i = (uint32_t) linear_framebuffer; i < (uint32_t) linear_framebuffer + lfb_height * lfb_width * 4 + 0x1000; i += 0x1000) {
         pfa_lock_page(&pfa, (void*) i);
+    }
+
+    pde_init(&page_directory);
+
+    // Map pages
+    for (uint32_t i = (uint32_t) double_framebuffer; i <= (uint32_t) double_framebuffer + lfb_height * lfb_width * 4; i += 0x1000) {
         pde_map_memory(&page_directory, &pfa, (void*) i, (void*) i);
     }
 
-    void* phys_start = pfa_request_page(&pfa);
-    for (uint32_t i = (uint32_t) phys_start; i <= (uint32_t) phys_start + pfa_free_memory(); i += 0x1000) {
+    for (uint32_t i = (uint32_t) linear_framebuffer; i < (uint32_t) linear_framebuffer + lfb_height * lfb_width * 4 + 0x1000; i += 0x1000) {
         pde_map_memory(&page_directory, &pfa, (void*) i, (void*) i);
     }
 
-    pfa_free_page(&pfa, phys_start);
+    multiboot_memory_map_t* mmap_entry = (multiboot_memory_map_t*) multiboot->mmap_addr;
+    while ((uint32_t) mmap_entry < multiboot->mmap_addr + multiboot->mmap_length) {
+        if (mmap_entry->type == MULTIBOOT_MEMORY_AVAILABLE) {
+            for (uint64_t i = 0; i < mmap_entry->len; i++) {
+                uint64_t address = mmap_entry->addr + i * 0x1000;
+                if (address > UINT32_MAX - 0x1000) {
+                    goto next;
+                }
+
+                void* ptr = (void*)(uint32_t) address;
+                pde_map_memory(&page_directory, &pfa, ptr, ptr);
+            }
+        }
+
+        next:
+        mmap_entry = (multiboot_memory_map_t*) (((uint32_t) mmap_entry) + mmap_entry->size + sizeof(mmap_entry->size));
+    }
 
     enable_paging(&page_directory);
-    memcpy(linear_framebuffer, double_framebuffer, lfb_width * lfb_height * 4);
 
     puts("Initializing heap..."); // TODO: Rewrite heap
     heap_init((void*) (2147483648U & ~0xFFFU), 0x10); // TODO: 64-bit kernel for larger address space
@@ -255,6 +274,8 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     net_init();
 
     // Userspace test
+    page_directory_t* user_pd = pde_clone(&page_directory, &pfa);
+
     vfs_entry_t* bin_dir = vfs_find_entry(&initrd, "bin");
     vfs_entry_t* exec_file = vfs_find_entry_in(&initrd, bin_dir, "hello");
 
@@ -268,16 +289,6 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
         panic("Invalid ELF32 magic value.");
         return;
     }
-
-    uintptr_t user_pd_address = (uintptr_t) malloc(sizeof(page_directory_t) + 4096);
-    if (user_pd_address & 0xFFF) {
-        user_pd_address &= ~0xFFF;
-        user_pd_address += 0x1000;
-    }
-
-    page_directory_t* user_pd = (page_directory_t*) user_pd_address;
-    memcpy(user_pd, current_page_directory, sizeof(page_directory_t));
-    pde_init(user_pd);
 
     uintptr_t entry = (uintptr_t) header->e_entry;
     for (uintptr_t i = 0; i < (uint32_t) header->e_phentsize * header->e_phnum; i += header->e_phentsize) {
