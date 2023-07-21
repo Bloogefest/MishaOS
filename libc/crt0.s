@@ -5,6 +5,4 @@ _start:
     call main
     mov %eax, %ebx
     # TODO: sys_exit here
-.loop:
-    hlt
-    jmp .loop
+.1: jmp .1

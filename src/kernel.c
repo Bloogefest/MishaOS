@@ -254,13 +254,6 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     net_post_init = net_post;
     net_init();
 
-    int ret;
-    __asm__ __volatile__("int $0x80" : "=a"(ret) : "0"(SYS_PRINT), "b"("syscall: SYS_PRINT\n"));
-
-    if (ret != 0) {
-        kprintf("error: syscall return code: %d.\n", ret);
-    }
-
     // Userspace test
     vfs_entry_t* bin_dir = vfs_find_entry(&initrd, "bin");
     vfs_entry_t* exec_file = vfs_find_entry_in(&initrd, bin_dir, "hello");
@@ -319,7 +312,8 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
 
     enable_paging(user_pd);
 
-    asm volatile("mov %1, %%esp\n"
+    asm volatile("cli\n"
+                 "mov %1, %%esp\n"
                  "pushl $0x00\n"
                  "mov $0x23, %%ax\n"
                  "mov %%ax, %%ds\n"
@@ -329,20 +323,17 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
                  "mov %%esp, %%eax\n"
                  "pushl $0x23\n"
                  "pushl %%eax\n"
-                 "pushf\n"
-                 "popl %%eax\n"
-                 "orl $0x200, %%eax\n"
-                 "pushl %%eax\n"
+                 "pushl $0x202\n"
                  "pushl $0x1B\n"
                  "pushl %0\n"
                  "iret\n"
-                 : : "m"(entry), "r"(0x10010000) : "%ax", "%esp", "%eax");
+                 : : "m"(entry), "r"(0x10010000));
 
-    puts("Done. MishaOS loaded.");
+    while (1);
+}
 
-    for (;;) {
-        mouse_handle_packet();
-        graphics_redraw();
-        net_poll();
-    }
+void kernel_poll() {
+    mouse_handle_packet();
+    graphics_redraw();
+    net_poll();
 }
