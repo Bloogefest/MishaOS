@@ -255,6 +255,8 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
     net_init();
 
     // Userspace test
+    page_directory_t* user_pd = pde_clone(&page_directory, &pfa);
+
     vfs_entry_t* bin_dir = vfs_find_entry(&initrd, "bin");
     vfs_entry_t* exec_file = vfs_find_entry_in(&initrd, bin_dir, "hello");
 
@@ -268,16 +270,6 @@ void kernel_main(kernel_meminfo_t meminfo, struct multiboot* multiboot, uint32_t
         panic("Invalid ELF32 magic value.");
         return;
     }
-
-    uintptr_t user_pd_address = (uintptr_t) malloc(sizeof(page_directory_t) + 4096);
-    if (user_pd_address & 0xFFF) {
-        user_pd_address &= ~0xFFF;
-        user_pd_address += 0x1000;
-    }
-
-    page_directory_t* user_pd = (page_directory_t*) user_pd_address;
-    memcpy(user_pd, current_page_directory, sizeof(page_directory_t));
-    pde_init(user_pd);
 
     uintptr_t entry = (uintptr_t) header->e_entry;
     for (uintptr_t i = 0; i < (uint32_t) header->e_phentsize * header->e_phnum; i += header->e_phentsize) {

@@ -216,6 +216,45 @@ void pde_init(page_directory_t* page_directory) {
     }
 }
 
+page_directory_t* pde_alloc() {
+    uintptr_t unaligned = (uintptr_t) malloc(sizeof(page_directory_t) + 4096);
+
+    uintptr_t address = unaligned;
+    if (address & 0xFFF) {
+        address &= ~0xFFF;
+        address += 0x1000;
+    }
+
+    page_directory_t* page_directory = (page_directory_t*) address;
+    memset(page_directory, 0, sizeof(page_directory_t));
+    page_directory->unaligned_ptr = (void*) unaligned;
+    return page_directory;
+}
+
+page_directory_t* pde_clone(page_directory_t* page_directory, pfa_t* pfa) {
+    page_directory_t* clone = pde_alloc();
+
+    for (uint32_t i = 0; i < 1024; i++) {
+        if (page_directory->physical_tables[i] & 0x07) {
+            clone->tables[i] = pfa_request_page(pfa);
+            memcpy(clone->tables[i], page_directory->tables[i], 4096);
+        }
+    }
+
+    pde_init(clone);
+    return clone;
+}
+
+void pde_free(page_directory_t* page_directory, pfa_t* pfa) {
+    for (uint32_t i = 0; i < 1024; i++) {
+        if (page_directory->tables[i]) {
+            pfa_free_page(pfa, page_directory->tables[i]);
+        }
+    }
+
+    free(page_directory->unaligned_ptr);
+}
+
 page_t* pde_request_page(page_directory_t* page_directory, pfa_t* pfa, void* virtual_mem) {
     uint32_t address = (uint32_t) virtual_mem / 0x1000;
     uint32_t table_idx = address / 1024;
