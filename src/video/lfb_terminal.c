@@ -51,9 +51,9 @@ void lfb_terminal_putchar(char ch) {
 
             if (terminal_row + 1 >= lfb_terminal.rows) {
                 uint32_t row_length = lfb_width * 16 * 4;
-                memcpy(lfb_get_double_buffer(), lfb_get_double_buffer() + row_length, row_length * (lfb_terminal.rows - 1));
-                memset(lfb_get_double_buffer() + row_length * (lfb_terminal.rows - 1), 0, row_length);
-                memcpy(linear_framebuffer, lfb_get_double_buffer(), lfb_width * lfb_height * 4);
+                memcpy(lfb_get_back_buffer(), lfb_get_back_buffer() + row_length, row_length * (lfb_terminal.rows - 1));
+                memset(lfb_get_back_buffer() + row_length * (lfb_terminal.rows - 1), 0, row_length);
+                memcpy(linear_framebuffer, lfb_get_back_buffer(), lfb_width * lfb_height * 4);
             } else {
                 ++terminal_row;
             }

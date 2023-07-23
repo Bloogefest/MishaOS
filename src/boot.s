@@ -50,3 +50,9 @@ _start:
     jmp 1b
 
 .size _start, . - _start
+
+.global read_eip
+.type reap_eip, @function
+read_eip:
+    pop %eax
+    jmp *%eax

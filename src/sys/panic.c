@@ -18,8 +18,7 @@ void panic(const char* msg) {
     struct stackframe* stack;
     asm("movl %%ebp, %0" : "=r"(stack) : : );
     for (uint32_t frame = 0; stack && frame < 20; ++frame) {
-
-        kprintf(" 0x%016lx: %s\n", stack->eip, kernel_get_func_name(stack->eip));
+        kprintf(" 0x%08lx: %s\n", stack->eip, kernel_get_func_name(stack->eip));
         stack = stack->ebp;
     }
 

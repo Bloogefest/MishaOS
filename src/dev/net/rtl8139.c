@@ -86,7 +86,6 @@ void rtl8139_irq_handler(struct interrupt_frame* frame) {
     }
 
     pic_slave_eoi();
-    asm("sti");
 }
 
 void rtl8139_poll(net_intf_t* intf) { // TODO: Rewrite polling

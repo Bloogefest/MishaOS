@@ -4,5 +4,6 @@ _start:
     pop %eax
     call main
     mov %eax, %ebx
-    # TODO: sys_exit here
+    mov $0, %eax      # sys_exit
+    int $0x80
 .1: jmp .1

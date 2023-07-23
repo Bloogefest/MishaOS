@@ -1,9 +1,12 @@
 #include "heap.h"
 
 #include <cpu/paging.h>
+#include <sys/lock.h>
 
 extern pfa_t pfa;
 extern page_directory_t page_directory;
+
+static volatile uint8_t heap_lock;
 
 typedef struct heap_seg_hdr_s {
     size_t length;
@@ -47,7 +50,7 @@ heap_seg_hdr_t* heap_combine_split(heap_seg_hdr_t* seg, size_t length) {
         return 0;
     }
 
-    int split_seg_length = seg->length - length - sizeof(heap_seg_hdr_t);
+    size_t split_seg_length = seg->length - length - sizeof(heap_seg_hdr_t);
     if (split_seg_length < 0x10) {
         return 0;
     }
@@ -70,22 +73,42 @@ heap_seg_hdr_t* heap_combine_split(heap_seg_hdr_t* seg, size_t length) {
     return new_header;
 }
 
-void heap_init(void* heap_address, size_t page_count) {
-    void* virtual_address = heap_address;
+void heap_init(size_t page_count) {
+    void* virtual_address = (void*) HEAP_START;
     for (size_t i = 0; i < page_count; i++) {
         pde_map_memory(&page_directory, &pfa, virtual_address, pfa_request_page(&pfa));
         virtual_address = (void*) ((size_t) virtual_address + 0x1000);
     }
 
     size_t heap_length = page_count * 0x1000;
-    heap_start = heap_address;
+    heap_start = (void*) HEAP_START;
     heap_end = (void*) ((size_t) heap_start + heap_length);
-    heap_seg_hdr_t* start_seg = (heap_seg_hdr_t*) heap_address;
+    heap_seg_hdr_t* start_seg = (heap_seg_hdr_t*)(void*) HEAP_START;
     start_seg->length = heap_length - sizeof(heap_seg_hdr_t);
     start_seg->next = 0;
     start_seg->last = 0;
     start_seg->free = 1;
     last_header = start_seg;
+}
+
+void heap_map_user_segment(void* address) {
+    heap_seg_hdr_t* segment = (heap_seg_hdr_t*) address - 1;
+    size_t length = segment->length;
+    size_t pages = length / 0x1000 + (length & 0xFFF ? 1 : 0);
+    for (size_t i = 0; i < pages; i++) {
+        void* virtual_addr = (void*) ((uintptr_t) address + i * 0x1000);
+        pde_map_user_memory(&page_directory, &pfa, virtual_addr, pde_get_phys_addr(&page_directory, virtual_addr));
+    }
+}
+
+void heap_map_kernel_segment(void* address) {
+    heap_seg_hdr_t* segment = (heap_seg_hdr_t*) address - 1;
+    size_t length = segment->length;
+    size_t pages = length / 0x1000 + (length & 0xFFF ? 1 : 0);
+    for (size_t i = 0; i < pages; i++) {
+        void* virtual_addr = (void*) ((uintptr_t) address + i * 0x1000);
+        pde_map_memory(&page_directory, &pfa, virtual_addr, pde_get_phys_addr(&page_directory, virtual_addr));
+    }
 }
 
 void heap_expand(size_t length) {
@@ -110,7 +133,7 @@ void heap_expand(size_t length) {
     heap_combine_backward(new_segment);
 }
 
-void* malloc(size_t size) {
+void* kmalloc(size_t size) {
     if (size % 0x10) {
         size -= (size % 0x10);
         size += 0x10;
@@ -121,7 +144,7 @@ void* malloc(size_t size) {
     }
 
     heap_seg_hdr_t* current_seg = (heap_seg_hdr_t*) heap_start;
-    while (1) {
+    while (current_seg) {
         if (current_seg->free) {
             if (current_seg->length > size) {
                 heap_combine_split(current_seg, size);
@@ -133,20 +156,40 @@ void* malloc(size_t size) {
             }
         }
 
-        if (current_seg->next) {
-            current_seg = current_seg->next;
-        } else {
-            break;
-        }
+        current_seg = current_seg->next;
     }
 
     heap_expand(size);
-    return malloc(size);
+    return kmalloc(size);
 }
 
-void free(void* address) {
+#define alloc_begin()                                      \
+    spin_lock(&heap_lock);                                 \
+    page_directory_t* current_pd = current_page_directory; \
+    enable_paging(&page_directory);
+
+#define alloc_end()            \
+    enable_paging(current_pd); \
+    spin_unlock(&heap_lock);
+
+void* malloc(size_t size) {
+    alloc_begin();
+    void* ptr = kmalloc(size);
+    alloc_end();
+    return ptr;
+}
+
+void kfree(void* address) {
+    heap_map_kernel_segment(address);
     heap_seg_hdr_t* segment = (heap_seg_hdr_t*) address - 1;
     segment->free = 1;
     heap_combine_forward(segment);
     heap_combine_backward(segment);
+}
+
+void free(void* address) {
+    alloc_begin();
+    kfree(address);
+    alloc_end();
+    spin_unlock(&heap_lock);
 }
