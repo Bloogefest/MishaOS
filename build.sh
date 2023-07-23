@@ -52,6 +52,7 @@ i686-elf-gcc -c src/lib/string.c           -o build/lib/string.o           $cc_f
 i686-elf-gcc -c src/lib/terminal.c         -o build/lib/terminal.o         $cc_flags
 i686-elf-gcc -c src/lib/tga.c              -o build/lib/tga.o              $cc_flags
 i686-elf-gcc -c src/lib/time.c             -o build/lib/time.o             $cc_flags
+i686-elf-gcc -c src/lib/tree.c             -o build/lib/tree.o             $cc_flags
 #i686-elf-gcc -c src/mc/f3f5.c              -o build/mc/f3f5.o              $cc_flags
 #i686-elf-gcc -c src/mc/mcprotocol.c        -o build/mc/mcprotocol.o        $cc_flags
 i686-elf-gcc -c src/misc/psf_font.c        -o build/misc/psf_font.o        $cc_flags
@@ -75,8 +76,12 @@ i686-elf-gcc -c src/net/udp.c              -o build/net/udp.o              $cc_f
 i686-elf-gcc -c src/sys/heap.c             -o build/sys/heap.o             $cc_flags -O0
 i686-elf-gcc -c src/sys/isrs.c             -o build/sys/isrs.o             $cc_flags -mgeneral-regs-only -Wno-unused-parameter
 i686-elf-gcc -c src/sys/kernel_mem.c       -o build/sys/kernel_mem.o       $cc_flags -O0
+i686-elf-gcc -c src/sys/exec.c             -o build/sys/exec.o             $cc_flags
+i686-elf-gcc -c src/sys/lock.c             -o build/sys/lock.o             $cc_flags
+i686-elf-gcc -c src/sys/mount.c            -o build/sys/mount.o            $cc_flags
 i686-elf-gcc -c src/sys/panic.c            -o build/sys/panic.o            $cc_flags
 i686-elf-gcc -c src/sys/pit.c              -o build/sys/pit.o              $cc_flags
+i686-elf-gcc -c src/sys/process.c          -o build/sys/process.o          $cc_flags
 i686-elf-gcc -c src/sys/rtc.c              -o build/sys/rtc.o              $cc_flags
 i686-elf-gcc -c src/sys/syscall.c          -o build/sys/syscall.o          $cc_flags -mgeneral-regs-only
 i686-elf-gcc -c src/video/graphics.c       -o build/video/graphics.o       $cc_flags
@@ -104,6 +109,10 @@ objects="
                 build/sys/pit.o \
                 build/sys/heap.o \
                 build/sys/syscall.o \
+                build/sys/exec.o \
+                build/sys/lock.o \
+                build/sys/mount.o \
+                build/sys/process.o \
                 build/lib/terminal.o \
                 build/lib/string.o \
                 build/lib/stdlib.o \
@@ -112,6 +121,7 @@ objects="
                 build/lib/ctype.o \
                 build/lib/time.o \
                 build/lib/kprintf.o \
+                build/lib/tree.o \
                 build/misc/psf_font.o \
                 build/dev/pci.o \
                 build/dev/driver.o \

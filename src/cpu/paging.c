@@ -1,6 +1,7 @@
 #include "paging.h"
 
 #include <lib/string.h>
+#include <lib/kprintf.h>
 #include <sys/heap.h>
 
 uint32_t free_memory;
@@ -22,73 +23,23 @@ void pfa_read_memory_map(pfa_t* pfa, struct multiboot* multiboot, kernel_meminfo
         initialized = 1;
     }
 
-    uint32_t largest_free_memory = 0;
-    uint32_t largest_free_length = 0;
-    uint64_t total_free_length = 0;
-
-    multiboot_memory_map_t* entry = (multiboot_memory_map_t*) multiboot->mmap_addr;
-    while ((uint32_t) entry < multiboot->mmap_addr + multiboot->mmap_length) {
-        if (entry->type == MULTIBOOT_MEMORY_AVAILABLE) {
-            if (entry->addr < 0x100000) {
-                goto next;
-            }
-
-            if (entry->addr > UINT32_MAX) {
-                goto next;
-            }
-
-            if (entry->len > UINT32_MAX) {
-                entry->len = UINT32_MAX;
-            }
-
-            uint32_t address = (uint32_t) entry->addr;
-            uint32_t length = (uint32_t) entry->len;
-
-            if (address >= meminfo->kernel_physical_start && address + length >= meminfo->kernel_physical_end) {
-                uint32_t end = address + length;
-                address = initrd_end;
-                length = end - address;
-            } else if (address <= meminfo->kernel_physical_start && address + length >= meminfo->kernel_physical_start) {
-                length = meminfo->kernel_physical_end - address - 1;
-            } else if (address >= meminfo->kernel_physical_start && address + length <= meminfo->kernel_physical_end) {
-                goto next;
-            }
-
-            if (address >= initrd_start && address + length >= initrd_end) {
-                uint32_t end = address + length;
-                address = initrd_end;
-                length = end - address;
-            } else if (address <= initrd_start && address + length >= initrd_start) {
-                length = initrd_end - address - 1;
-            } else if (address >= initrd_start && address + length <= initrd_end) {
-                goto next;
-            }
-
-            if (length > largest_free_length) {
-                largest_free_memory = address;
-                largest_free_length = length;
-            }
-
-            total_free_length += length;
-        }
-
-        next:
-        entry = (multiboot_memory_map_t*) (((uint32_t) entry) + entry->size + sizeof(entry->size));
-    }
-
-    uint64_t bitmap_size = UINT32_MAX / 0x1000 / 8 + 1;
-
-    pfa->size = bitmap_size;
-    pfa->buffer = (void*) largest_free_memory;
-    memset(pfa->buffer, 0, bitmap_size);
+    pfa->size = UINT32_MAX / 0x1000 / 8 + 1;
+    pfa->buffer = (void*) 0x1000000;
+    memset(pfa->buffer, 0, pfa->size);
     pfa_lock_pages(pfa, (void*) meminfo->kernel_physical_start,
                    (meminfo->kernel_physical_end - meminfo->kernel_physical_start) / 0x1000 + 1);
     pfa_lock_pages(pfa, (void*) initrd_start, (initrd_end - initrd_start) / 0x1000 + 1);
 
-    entry = (multiboot_memory_map_t*) multiboot->mmap_addr;
+    uint64_t total_free_length = 0;
+
+    multiboot_memory_map_t* entry = (multiboot_memory_map_t*) multiboot->mmap_addr;
     while ((uint32_t) entry < multiboot->mmap_addr + multiboot->mmap_length) {
         if (entry->type != MULTIBOOT_MEMORY_AVAILABLE) {
-            pfa_reserve_pages(pfa, (void*) ((uint32_t) entry->addr), (uint32_t) (entry->len / 0x1000));
+            if (entry->addr < UINT32_MAX) {
+                pfa_reserve_pages(pfa, (void*) ((uint32_t) entry->addr), (uint32_t) (entry->len / 0x1000));
+            } else {
+                total_free_length += entry->len;
+            }
         }
 
         entry = (multiboot_memory_map_t*) (((uint32_t) entry) + entry->size + sizeof(entry->size));
@@ -195,7 +146,30 @@ void* pfa_request_page(pfa_t* pfa) {
         return address;
     }
 
+    kprintf("[Error] Out of memory.\n");
     return 0; // TODO: Swap
+}
+
+void* pfa_request_pages(pfa_t* pfa, uint32_t pages) {
+    for (; pfa_get_bit(pfa, page_index); page_index++);
+    uint32_t current_index = page_index;
+    while (1) {
+        uint8_t free = 1;
+        for (uint32_t i = 0; i < pages; i++) {
+            if (pfa_get_bit(pfa, (current_index + i) * 0x1000)) {
+                free = 0;
+                break;
+            }
+        }
+
+        if (free) {
+            void* address = (void*) (current_index * 0x1000);
+            pfa_lock_pages(pfa, address, pages);
+            return address;
+        }
+
+        current_index += pages;
+    }
 }
 
 uint32_t pfa_free_memory() {
@@ -210,7 +184,7 @@ uint32_t pfa_reserved_memory() {
     return reserved_memory;
 }
 
-void pde_init(page_directory_t* page_directory) {
+void pde_init(page_directory_t* page_directory, pfa_t* pfa) {
     void* ptr = &page_directory->physical_tables;
     if (current_page_directory) {
         ptr = pde_get_phys_addr(current_page_directory, ptr);
@@ -219,6 +193,9 @@ void pde_init(page_directory_t* page_directory) {
     page_directory->physical_address = (uint32_t)(uintptr_t) ptr;
     for (uint32_t i = 0; i < 1024; i++) {
         if (page_directory->tables[i]) {
+            page_directory->physical_tables[i] = (uint32_t) page_directory->tables[i] | 0x07;
+        } else if (i >= HEAP_START_TABLE && i < HEAP_END_TABLE) {
+            page_directory->tables[i] = pfa_request_page(pfa);
             page_directory->physical_tables[i] = (uint32_t) page_directory->tables[i] | 0x07;
         }
     }
@@ -243,18 +220,24 @@ page_directory_t* pde_clone(page_directory_t* page_directory, pfa_t* pfa) {
     page_directory_t* clone = pde_alloc();
 
     for (uint32_t i = 0; i < 1024; i++) {
-        if (page_directory->physical_tables[i] & 0x07) {
+        if (i >= HEAP_START_TABLE && i < HEAP_END_TABLE) {
+            clone->tables[i] = page_directory->tables[i];
+        } else if (page_directory->tables[i] && (uintptr_t) page_directory->tables[i] != 0xFFFFFFFF) {
             clone->tables[i] = pfa_request_page(pfa);
             memcpy(clone->tables[i], page_directory->tables[i], 4096);
         }
     }
 
-    pde_init(clone);
+    pde_init(clone, pfa);
     return clone;
 }
 
 void pde_free(page_directory_t* page_directory, pfa_t* pfa) {
     for (uint32_t i = 0; i < 1024; i++) {
+        if (i >= HEAP_START_TABLE && i < HEAP_END_TABLE) {
+            continue;
+        }
+
         if (page_directory->tables[i]) {
             pfa_free_page(pfa, page_directory->tables[i]);
         }

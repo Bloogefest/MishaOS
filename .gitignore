@@ -1,12 +1,23 @@
-*.iso
-*.raw
-*.img
-build/
-src/dev/usb
+# Binary files
 mishaboot/eboot/ovmf/
+userspace/bin
 initrd/.funcs
 initrd/bin
 libc/bin
-userspace/bin
-CMakeLists.txt
+*.iso
+*.raw
+*.img
 *.a
+
+# Debug files
+debug/
+
+# Build files
+build/
+
+# Configuration files
+CMakeLists.txt
+.bochsrc
+
+# Unfinished stuff
+src/dev/usb

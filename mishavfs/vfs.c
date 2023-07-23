@@ -35,6 +35,10 @@ vfs_filesystem_t* vfs_read_filesystem(vfs_filesystem_t* fs, uint8_t* data) {
 vfs_entry_t* vfs_find_entry_in(vfs_filesystem_t* fs, vfs_entry_t* entry, const char* name) {
     entry = vfs_follow_links(fs, entry);
 
+    if (strcmp(name, ".") == 0) {
+        return entry;
+    }
+
     if (entry->type != VFS_TYPE_DIRECTORY || !entry->target_entry) {
         return 0;
     }

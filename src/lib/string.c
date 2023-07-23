@@ -1,5 +1,7 @@
 #include "string.h"
 
+#include <sys/heap.h>
+
 size_t strlen(const char* str) {
     size_t len = 0;
     while (str[len]) {
@@ -22,6 +24,13 @@ char* strcpy(char* dst, const char* src) {
 
     *dst = 0;
     return ptr;
+}
+
+char* strdup(const char* str) {
+    size_t len = strlen(str) + 1;
+    char* newstr = malloc(len);
+    memcpy(newstr, str, len);
+    return newstr;
 }
 
 void* memset(void* ptr, int value, size_t size) {

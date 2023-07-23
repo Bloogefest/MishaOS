@@ -9,3 +9,5 @@ void gdt_load(uint16_t limit, uint32_t base);
 
 void tss_encode_entry(gdt_entry_t* entry, uint16_t ss0, uint32_t esp0);
 void tss_flush();
+
+void set_kernel_stack(uintptr_t stack);

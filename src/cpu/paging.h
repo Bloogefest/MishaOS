@@ -15,6 +15,7 @@ void pfa_lock_page(pfa_t* pfa, void* address);
 void pfa_free_pages(pfa_t* pfa, void* address, uint32_t count);
 void pfa_lock_pages(pfa_t* pfa, void* address, uint32_t count);
 void* pfa_request_page(pfa_t* pfa);
+void* pfa_request_pages(pfa_t* pfa, uint32_t pages);
 uint32_t pfa_free_memory();
 uint32_t pfa_used_memory();
 uint32_t pfa_reserved_memory();
@@ -42,8 +43,8 @@ typedef struct page_directory_s {
 
 extern page_directory_t* current_page_directory;
 
-void pde_init(page_directory_t* page_directory);
 page_directory_t* pde_alloc();
+void pde_init(page_directory_t* page_directory, pfa_t* pfa);
 page_directory_t* pde_clone(page_directory_t* page_directory, pfa_t* pfa);
 void pde_free(page_directory_t* page_directory, pfa_t* pfa);
 page_t* pde_request_page(page_directory_t* page_directory, pfa_t* pfa, void* virtual_mem);

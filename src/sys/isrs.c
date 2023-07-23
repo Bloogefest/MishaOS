@@ -7,19 +7,18 @@
 #include <sys/panic.h>
 #include <sys/pit.h>
 #include <sys/syscall.h>
+#include <sys/process.h>
 #include <kernel.h>
 
 #define PERIPHERAL_HANDLER(id)                                   \
     __attribute__((interrupt))                                   \
     void peripheral_handler##id(struct interrupt_frame* frame) { \
-        asm("cli");                                              \
         irq_handler_t handler = peripheral_isrs[id];             \
         if (handler) {                                           \
             handler(frame);                                      \
         } else {                                                 \
             pic_slave_eoi();                                     \
         }                                                        \
-        asm("sti");                                              \
     }                                                            \
 
 irq_handler_t peripheral_isrs[] = {0, 0, 0};
@@ -27,6 +26,7 @@ irq_handler_t peripheral_isrs[] = {0, 0, 0};
 __attribute__((interrupt))
 void general_protection_fault_isr(struct interrupt_frame* frame) {
     asm("cli");
+    kprintf("GPF:\n EIP=%08lx\n", frame->eip);
     panic("General Protection Fault");
 }
 
@@ -77,7 +77,6 @@ __attribute__((interrupt))
 void keyboard_isr(struct interrupt_frame* frame) {
     asm("cli");
     uint8_t scancode = inb(0x60);
-    pic_master_eoi();
     switch (scancode) {
         case 0x1C: { // Enter pressed
             putchar('\n');
@@ -131,28 +130,26 @@ void keyboard_isr(struct interrupt_frame* frame) {
         }
     }
 
-    asm("sti");
+    pic_master_eoi();
 }
 
 __attribute__((interrupt))
 void ps2_mouse_isr(struct interrupt_frame* frame) {
-    asm("cli");
     mouse_read_packet();
     pic_slave_eoi();
-    asm("sti");
 }
 
 __attribute__((interrupt))
 void pit_isr(struct interrupt_frame* frame) {
-    asm("cli");
     pit_tick();
     pic_master_eoi();
     kernel_poll();
+    switch_task(1);
     asm("sti");
 }
 
-void syscall_handler() {
-    asm("cli");
+__attribute__((interrupt))
+void syscall_handler(struct interrupt_frame* frame) {
     int eax;
     int ebx;
     int ecx;
@@ -168,7 +165,6 @@ void syscall_handler() {
     syscall_handle(&eax, ebx, ecx, edx, esi, edi);
 
     asm volatile("" : : "a"(eax));
-    asm("sti");
 }
 
 PERIPHERAL_HANDLER(0)

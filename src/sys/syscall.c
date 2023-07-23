@@ -1,6 +1,13 @@
 #include "syscall.h"
 
 #include <lib/kprintf.h>
+#include <sys/process.h>
+
+__attribute__((noreturn))
+static int sys_exit(int rval) {
+    task_exit(rval);
+    while (1);
+}
 
 static int sys_print(const char* str) {
     if (!str) {
@@ -12,7 +19,7 @@ static int sys_print(const char* str) {
 }
 
 static uint32_t syscalls[] = {
-        (uint32_t) 0, // sys_exit
+        (uint32_t) &sys_exit,
         (uint32_t) &sys_print,
 };
 
