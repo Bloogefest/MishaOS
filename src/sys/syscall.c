@@ -18,9 +18,15 @@ static int sys_print(const char* str) {
     return 0;
 }
 
+static int sys_yield() {
+    switch_task(1);
+    return 0;
+}
+
 static uint32_t syscalls[] = {
         (uint32_t) &sys_exit,
         (uint32_t) &sys_print,
+        (uint32_t) &sys_yield,
 };
 
 void syscall_handle(int* eax, int ebx, int ecx, int edx, int esi, int edi) {

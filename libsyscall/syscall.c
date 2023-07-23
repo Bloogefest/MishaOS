@@ -11,3 +11,7 @@ int sys_print(const char* msg) {
     __asm__ __volatile__("int $0x80" : "=a"(eax) : "0"(SYS_PRINT), "b"((uint32_t)(uintptr_t) msg));
     return eax;
 }
+
+void sys_yield() {
+    __asm__ __volatile__("int $0x80" : : "a"(SYS_YIELD));
+}
