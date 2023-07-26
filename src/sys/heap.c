@@ -37,6 +37,7 @@ void heap_combine_forward(heap_seg_hdr_t* seg) {
     }
 
     seg->length += seg->next->length + sizeof(heap_seg_hdr_t);
+    seg->next = seg->next->next;
 }
 
 void heap_combine_backward(heap_seg_hdr_t* seg) {
@@ -191,5 +192,4 @@ void free(void* address) {
     alloc_begin();
     kfree(address);
     alloc_end();
-    spin_unlock(&heap_lock);
 }
