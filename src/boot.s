@@ -56,3 +56,31 @@ _start:
 read_eip:
     pop %eax
     jmp *%eax
+
+.extern syscall_handle
+.global syscall_handler
+syscall_handler:
+    cli
+    push $0x00
+    push $0x80
+	pusha
+	push %ds
+	push %es
+	push %fs
+	push %gs
+	mov $0x10, %ax
+	mov %ax, %ds
+	mov %ax, %es
+	mov %ax, %fs
+	mov %ax, %gs
+	mov %esp, %eax
+	push %eax
+	call syscall_handle
+	pop %eax
+	pop %gs
+	pop %fs
+	pop %es
+	pop %ds
+	popa
+	add $8, %esp
+	iret

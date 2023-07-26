@@ -4,7 +4,8 @@
 #include <stddef.h>
 #include <cpu/paging.h>
 #include <lib/tree.h>
-#include <vfs.h>
+
+struct vfs_entry_s;
 
 typedef int32_t pid_t;
 typedef uint8_t status_t;

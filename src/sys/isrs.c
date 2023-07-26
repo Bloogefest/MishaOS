@@ -148,25 +148,6 @@ void pit_isr(struct interrupt_frame* frame) {
     asm("sti");
 }
 
-__attribute__((interrupt))
-void syscall_handler(struct interrupt_frame* frame) {
-    int eax;
-    int ebx;
-    int ecx;
-    int edx;
-    int esi;
-    int edi;
-
-    asm volatile(""
-                 : "=a"(eax), "=b"(ebx)
-                 , "=c"(ecx), "=d"(edx)
-                 , "=S"(esi), "=D"(edi));
-
-    syscall_handle(&eax, ebx, ecx, edx, esi, edi);
-
-    asm volatile("" : : "a"(eax));
-}
-
 PERIPHERAL_HANDLER(0)
 PERIPHERAL_HANDLER(1)
 PERIPHERAL_HANDLER(2)
