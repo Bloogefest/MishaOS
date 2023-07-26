@@ -201,23 +201,16 @@ void pde_init(page_directory_t* page_directory, pfa_t* pfa) {
     }
 }
 
-page_directory_t* pde_alloc() {
-    uintptr_t unaligned = (uintptr_t) malloc(sizeof(page_directory_t) + 4096);
-
-    uintptr_t address = unaligned;
-    if (address & 0xFFF) {
-        address &= ~0xFFF;
-        address += 0x1000;
-    }
+page_directory_t* pde_alloc(pfa_t* pfa) {
+    uintptr_t address = (uintptr_t) pfa_request_pages(pfa, 3);
 
     page_directory_t* page_directory = (page_directory_t*) address;
     memset(page_directory, 0, sizeof(page_directory_t));
-    page_directory->unaligned_ptr = (void*) unaligned;
     return page_directory;
 }
 
 page_directory_t* pde_clone(page_directory_t* page_directory, pfa_t* pfa) {
-    page_directory_t* clone = pde_alloc();
+    page_directory_t* clone = pde_alloc(pfa);
 
     for (uint32_t i = 0; i < 1024; i++) {
         if (i >= HEAP_START_TABLE && i < HEAP_END_TABLE) {
@@ -243,7 +236,7 @@ void pde_free(page_directory_t* page_directory, pfa_t* pfa) {
         }
     }
 
-    free(page_directory->unaligned_ptr);
+    pfa_free_pages(pfa, page_directory, 3);
 }
 
 page_t* pde_request_page(page_directory_t* page_directory, pfa_t* pfa, void* virtual_mem) {
