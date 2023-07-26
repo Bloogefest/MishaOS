@@ -79,7 +79,7 @@ void keyboard_isr(struct interrupt_frame* frame) {
     uint8_t scancode = inb(0x60);
     switch (scancode) {
         case 0x1C: { // Enter pressed
-            putchar('\n');
+            terminal_process_input('\n');
             break;
         }
 
@@ -99,19 +99,7 @@ void keyboard_isr(struct interrupt_frame* frame) {
         }
 
         case 0x0E: { // Backspace pressed
-            size_t column = terminal_get_column();
-            size_t row = terminal_get_row();
-            if (--column == (size_t) -1) {
-                column = terminal_get_columns() - 1;
-                if (--row == (size_t) -1) {
-                    row = terminal_get_rows() - 1;
-                }
-            }
-
-            terminal_set_column(column);
-            terminal_set_row(row);
-            putchar(' ');
-            terminal_set_column(column);
+            terminal_process_input('\b');
             break;
         }
 
@@ -123,7 +111,8 @@ void keyboard_isr(struct interrupt_frame* frame) {
             char c = SCAN_CODE_SET[scancode];
             uint8_t uppercase = CAPS_LOCK ^ SHIFT;
             if (c) {
-                putchar(c - uppercase * 32);
+                c = (char) (c - uppercase * 32);
+                terminal_process_input(c);
             }
 
             break;

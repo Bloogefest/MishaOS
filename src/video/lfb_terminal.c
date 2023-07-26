@@ -70,7 +70,7 @@ void lfb_terminal_putchar(char ch) {
             uint32_t ny = (terminal_row * 16) + j;
 
             uint32_t color = (*face & (0b10000000 >> i)) > 0
-                             ? 0xFFFFFFFF : 0x00000000;
+                             ? terminal_get_color() : 0x00000000;
 
             lfb_set_pixel(nx, ny, color);
         }
