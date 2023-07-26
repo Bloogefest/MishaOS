@@ -3,27 +3,36 @@
 #include <lib/kprintf.h>
 #include <kernel.h>
 
+static uint8_t _panic = 0;
+
 void panic(const char* msg) {
-    terminal_init();
-//    terminal_clear_terminal();
-    puts("\n!! KERNEL PANIC !!");
-    puts(msg);
+    if (++_panic == 1) {
+        terminal_init();
 
-    puts("\nStack Trace: ");
-    struct stackframe {
-        struct stackframe* ebp;
-        uint32_t eip;
-    };
+        puts("\n!! KERNEL PANIC !!");
+        puts(msg);
 
-    struct stackframe* stack;
-    asm("movl %%ebp, %0" : "=r"(stack) : : );
-    for (uint32_t frame = 0; stack && frame < 20; ++frame) {
-        kprintf(" 0x%08lx: %s\n", stack->eip, kernel_get_func_name(stack->eip));
-        stack = stack->ebp;
+        puts("\nStack Trace: ");
+        struct stackframe {
+            struct stackframe* ebp;
+            uint32_t eip;
+        };
+
+        struct stackframe* stack;
+        asm("movl %%ebp, %0" : "=r"(stack) : : );
+        for (uint32_t frame = 0; stack && frame < 20; ++frame) {
+            kprintf(" 0x%08lx: %s\n", stack->eip, kernel_get_func_name(stack->eip));
+            stack = stack->ebp;
+        }
+    } else if (_panic == 2) {
+        puts("Panic has caused another panic. Something bad happened.");
+    } else {
+        goto halt;
     }
 
     puts("\n!! FISH IS NOT OPTIMIZED !!");
 
+    halt:
     for (;;) {
         asm("hlt");
     }
