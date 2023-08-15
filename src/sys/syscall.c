@@ -29,19 +29,17 @@ static uint32_t syscalls[] = {
         (uint32_t) &sys_yield,
 };
 
-void syscall_handle(int* eax, int ebx, int ecx, int edx, int esi, int edi) {
-    static int* current_eax;
-
-    if ((uint32_t) *eax >= sizeof(syscalls) / sizeof(syscalls[0])) {
+void syscall_handle(struct syscall_regs* registers) {
+    if ((uint32_t) registers->eax >= sizeof(syscalls) / sizeof(syscalls[0])) {
         return;
     }
 
-    uintptr_t handler = syscalls[(uint32_t) *eax];
+    uintptr_t handler = syscalls[(uint32_t) registers->eax];
     if (handler == 0) {
         return;
     }
 
-    current_eax = eax;
+    current_process->syscall_regs = registers;
 
     uint32_t ret;
     asm volatile("push %1\n"
@@ -56,9 +54,10 @@ void syscall_handle(int* eax, int ebx, int ecx, int edx, int esi, int edi) {
                  "pop %%ebx\n"
                  "pop %%ebx\n"
                  : "=a"(ret)
-                 : "r"(edi), "r"(esi)
-                 , "r"(edx), "r"(ecx)
-                 , "r"(ebx), "r"(handler));
+                 : "r"(registers->edi), "r"(registers->esi)
+                 , "r"(registers->edx), "r"(registers->ecx)
+                 , "r"(registers->ebx), "r"(handler));
 
-    *current_eax = ret;
+    registers = current_process->syscall_regs;
+    registers->eax = ret;
 }

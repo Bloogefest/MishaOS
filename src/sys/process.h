@@ -4,7 +4,8 @@
 #include <stddef.h>
 #include <cpu/paging.h>
 #include <lib/tree.h>
-#include <vfs.h>
+
+struct vfs_entry_s;
 
 typedef int32_t pid_t;
 typedef uint8_t status_t;
@@ -66,8 +67,6 @@ typedef struct ximage_s {
 } ximage_t;
 
 typedef struct file_descriptor_s {
-    struct file_descriptor_s* link;
-    uint32_t fd;
     int(*read)(struct file_descriptor_s* fd, void* buf, size_t len);
     int(*write)(struct file_descriptor_s* fd, void* buf, size_t len);
     int(*close)(struct file_descriptor_s* fd);
@@ -76,6 +75,12 @@ typedef struct file_descriptor_s {
     size_t length;
 } file_descriptor_t;
 
+typedef struct fd_list_s {
+    struct fd_list_s* link;
+    file_descriptor_t* value;
+    uint32_t fd;
+} fd_list_t;
+
 typedef struct process_s {
     pid_t id;
     char* name;
@@ -83,8 +88,11 @@ typedef struct process_s {
     ximage_t image;
     tree_t* process_tree;
     char* working_dir_path;
-    vfs_entry_t* working_dir_entry;
-    file_descriptor_t* fds;
+    struct vfs_entry_s* working_dir_entry;
+    fd_list_t* fds;
+    file_descriptor_t* stdout;
+    file_descriptor_t* stderr;
+    file_descriptor_t* stdin;
     uint32_t current_fd;
     status_t status;
     uint8_t finished;

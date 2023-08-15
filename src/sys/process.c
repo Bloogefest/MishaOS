@@ -6,6 +6,8 @@
 #include <sys/heap.h>
 #include <sys/panic.h>
 #include <sys/lock.h>
+#include <sys/isrs.h>
+#include <lib/stdlib.h>
 #include <lib/string.h>
 #include <lib/terminal.h>
 #include <lib/kprintf.h>
@@ -16,8 +18,8 @@ struct process_queue_list {
 };
 
 tree_t* process_tree = 0;
-struct process_queue_list process_queue = {.first = 0, .last = 0};
-struct process_queue_list reap_queue = {.first = 0, .last = 0};
+volatile struct process_queue_list process_queue = {.first = 0, .last = 0};
+volatile struct process_queue_list reap_queue = {.first = 0, .last = 0};
 volatile process_t* current_process = 0;
 
 static volatile uint8_t reap_lock;
@@ -38,7 +40,7 @@ void init_process(uint32_t esp) {
 process_t* spawn_process(volatile process_t* parent) {
     process_t* process = malloc(sizeof(process_t));
     process->id = ++current_pid;
-    process->name = strdup("unnamed process");
+    process->name = strdup("unnamed");
     process->thread.esp = 0;
     process->thread.ebp = 0;
     process->thread.eip = 0;
@@ -48,21 +50,24 @@ process_t* spawn_process(volatile process_t* parent) {
     process->image.stack = (uintptr_t) pfa_request_pages(&pfa, 8) + 0x8000;
     process->image.user_stack = parent->image.user_stack;
     process->process_tree = tree_create();
-    process->fds = parent->fds ? malloc(sizeof(file_descriptor_t)) : 0;
-    file_descriptor_t* current_fd = process->fds;
-    for (file_descriptor_t* fd = parent->fds; fd; fd = fd->link) {
-        memcpy(current_fd, fd, sizeof(file_descriptor_t));
+    process->fds = parent->fds ? malloc(sizeof(fd_list_t)) : 0;
+    fd_list_t* current_fd = process->fds;
+    for (fd_list_t* fd = parent->fds; fd; fd = fd->link) {
+        memcpy(current_fd, fd, sizeof(fd_list_t));
         if (fd->link) {
-            current_fd->link = malloc(sizeof(file_descriptor_t));
+            current_fd->link = malloc(sizeof(fd_list_t));
             current_fd = current_fd->link;
         }
         if (process->current_fd < fd->fd) {
             process->current_fd = fd->fd;
         }
     }
+    process->stdout = parent->stdout;
+    process->stderr = parent->stderr;
+    process->stdin = parent->stdin;
     process->current_fd = parent->current_fd;
     process->working_dir_entry = parent->working_dir_entry;
-    process->working_dir_path = parent->working_dir_path;
+    process->working_dir_path = strdup(parent->working_dir_path);
     process->status = 0;
     process->finished = 0;
     process->started = 0;
@@ -81,6 +86,80 @@ process_t* spawn_process(volatile process_t* parent) {
     spin_unlock(&tree_lock);
 
     return process;
+}
+
+int noop_read(file_descriptor_t* fd, void* buf, size_t len) {
+    return 0;
+}
+
+int noop_close(file_descriptor_t* fd) {
+    return 0;
+}
+
+int stdout_write(file_descriptor_t* fd, void* buf, size_t len) {
+    char* str = (void*) buf;
+    for (size_t i = 0; i < len; i++) {
+        putchar(str[i]);
+    }
+
+    return (int) len;
+}
+
+int stderr_write(file_descriptor_t* fd, void* buf, size_t len) {
+    uint32_t current_color = terminal_get_color();
+    terminal_set_color(0xED4337);
+    int r = stdout_write(fd, buf, len);
+    terminal_set_color(current_color);
+    return r;
+}
+
+int stdin_read(file_descriptor_t* fd, void* buf, size_t len) {
+    uint8_t* pipe_buffer = (uint8_t*) fd->context;
+    size_t to_read = len < fd->length ? len : fd->length;
+    if (to_read == 0) {
+        return 0;
+    }
+
+    size_t read_bytes = to_read;
+    if (fd->position + to_read >= 0x1000) {
+        size_t read_to_end = 0x1000 - fd->position;
+        if (read_to_end) {
+            memcpy(buf, pipe_buffer + fd->position, read_to_end);
+            buf = (uint8_t*) buf + read_to_end;
+            to_read -= read_to_end;
+            fd->length -= read_to_end;
+        }
+        fd->position = 0;
+    }
+    memcpy(buf, pipe_buffer + fd->position, to_read);
+    fd->position += to_read;
+    fd->length -= to_read;
+    return (int) read_bytes;
+}
+
+int stdin_write(file_descriptor_t* fd, void* buf, size_t len) {
+    uint8_t* pipe_buffer = (uint8_t*) fd->context;
+    size_t to_write = len < 0x1000 ? len : 0x1000;
+    if (to_write == 0) {
+        return 0;
+    }
+
+    size_t written_bytes = to_write;
+    uint32_t write_position = fd->position;
+    if (fd->position + to_write >= 0x1000) {
+        size_t write_to_end = 0x1000 - write_position;
+        if (write_to_end) {
+            memcpy(pipe_buffer + write_position, buf, write_to_end);
+            buf = (uint8_t*) buf + write_to_end;
+            to_write -= write_to_end;
+            fd->length += write_to_end;
+        }
+        write_position = 0;
+    }
+    memcpy(pipe_buffer + write_position, buf, to_write);
+    fd->length += to_write;
+
+    return (int) written_bytes;
 }
 
 process_t* spawn_init(uint32_t esp) {
@@ -112,6 +191,31 @@ process_t* spawn_init(uint32_t esp) {
     init->reap_node.prev = 0;
     init->reap_node.process = init;
     init->reap_node.queued = 0;
+
+    file_descriptor_t* stdout_fd = malloc(sizeof(file_descriptor_t));
+    memset(stdout_fd, 0, sizeof(file_descriptor_t));
+    stdout_fd->read = noop_read;
+    stdout_fd->write = stdout_write;
+    stdout_fd->close = noop_close;
+    process_add_fd(init, stdout_fd);
+    init->stdout = stdout_fd;
+
+    file_descriptor_t* stderr_fd = malloc(sizeof(file_descriptor_t));
+    memset(stderr_fd, 0, sizeof(file_descriptor_t));
+    stderr_fd->read = noop_read;
+    stderr_fd->write = stderr_write;
+    stderr_fd->close = noop_close;
+    process_add_fd(init, stderr_fd);
+    init->stderr = stderr_fd;
+
+    file_descriptor_t* stdin_fd = malloc(sizeof(file_descriptor_t));
+    memset(stdin_fd, 0, sizeof(file_descriptor_t));
+    stdin_fd->context = pfa_request_page(&pfa);
+    stdin_fd->read = stdin_read;
+    stdin_fd->write = stdin_write;
+    stdin_fd->close = noop_close;
+    process_add_fd(init, stdin_fd);
+    init->stdin = stdin_fd;
 
     return init;
 }
@@ -216,9 +320,9 @@ process_t* next_reapable_process() {
 void reap_process(process_t* process) {
     free(process->working_dir_path);
     free(process->name);
-    for (file_descriptor_t* fd = process->fds; fd;) {
-        file_descriptor_t* next = fd->link;
-        fd->close(fd);
+    for (fd_list_t* fd = process->fds; fd;) {
+        fd_list_t* next = fd->link;
+//        fd->value->close(fd->value); // TODO: Reference count
         free(fd);
         fd = next;
     }
@@ -241,10 +345,14 @@ uint32_t process_add_fd(process_t* process, file_descriptor_t* file) {
         return -1;
     }
 
-    file->link = process->fds;
-    process->fds = file;
-    file->fd = ++process->current_fd;
-    return file->fd;
+    fd_list_t* entry = malloc(sizeof(fd_list_t));
+    entry->fd = ++process->current_fd;
+    entry->value = file;
+    entry->link = process->fds;
+
+    process->fds = entry;
+
+    return entry->fd;
 }
 
 uint8_t process_pid_comparator(void* process, void* pid) {
@@ -279,9 +387,9 @@ void delete_process(process_t* process) {
 }
 
 file_descriptor_t* process_get_fd(process_t* process, uint32_t fd) {
-    for (file_descriptor_t* file = process->fds; file; file = file->link) {
-        if (file->fd == fd) {
-            return file;
+    for (fd_list_t* entry = process->fds; entry; entry = entry->link) {
+        if (entry->fd == fd) {
+            return entry->value;
         }
     }
 
@@ -289,16 +397,15 @@ file_descriptor_t* process_get_fd(process_t* process, uint32_t fd) {
 }
 
 uint32_t process_clone_fd(process_t* process, int from, int to) {
-    file_descriptor_t* fd = process_get_fd(process, from);
-    if (!fd) {
+    file_descriptor_t* file = process_get_fd(process, from);
+    if (!file) {
         return -1;
     }
 
-    file_descriptor_t* newfd = malloc(sizeof(file_descriptor_t));
-    memcpy(newfd, fd, sizeof(file_descriptor_t));
-    newfd->link = process->fds;
-    process->fds = newfd;
-    newfd->fd = to;
+    fd_list_t* entry = malloc(sizeof(fd_list_t));
+    entry->value = file;
+    entry->link = process->fds;
+    process->fds = entry;
 
     if (process->current_fd < (uint32_t) to) {
         process->current_fd = to;
@@ -399,8 +506,8 @@ pid_t clone(uintptr_t new_stack, uintptr_t thread_func, uintptr_t arg) {
         *((uintptr_t*) new_stack) = 0xFFFFB00F;
         new_process->syscall_regs->esp = new_stack;
         new_process->syscall_regs->useresp = new_stack;
-        for (file_descriptor_t* fd = new_process->fds; fd;) {
-            file_descriptor_t* next = fd->link;
+        for (fd_list_t* fd = new_process->fds; fd;) {
+            fd_list_t* next = fd->link;
             free(fd);
             fd = next;
         }

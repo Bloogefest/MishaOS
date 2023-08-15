@@ -41,5 +41,4 @@ void peripheral_handler1(struct interrupt_frame* frame);
 __attribute__((interrupt))
 void peripheral_handler2(struct interrupt_frame* frame);
 
-__attribute__((interrupt))
-void syscall_handler(struct interrupt_frame* frame);
+extern void syscall_handler();
